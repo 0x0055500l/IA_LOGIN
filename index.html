@@ -7,7 +7,8 @@
     <title>Secure & Elegant Login</title>
     <!-- Content Security Policy to prevent XSS and data injection -->
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline';">
+        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://cdnjs.cloudflare.com;">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css" />
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
@@ -50,9 +51,20 @@
 
             <div class="input-group">
                 <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" name="email" required autocomplete="off" placeholder="tu@correo.com"
-                    maxlength="50">
+                <div class="input-wrapper" style="position: relative;">
+                    <input type="email" id="email" name="email" required autocomplete="off" placeholder="tu@correo.com.hn"
+                        maxlength="60">
+                    <div class="mini-loader" id="emailLoader"></div>
+                </div>
                 <span class="error-message" id="emailError"></span>
+            </div>
+
+            <div class="input-group">
+                <label for="phone">Número Telefónico</label>
+                <div class="input-wrapper" style="position: relative; width: 100%;">
+                    <input type="tel" id="phone" name="phone" required autocomplete="off">
+                </div>
+                <span class="error-message" id="phoneError"></span>
             </div>
 
             <div class="input-group">
@@ -92,6 +104,7 @@
         <div class="ring ring-3"></div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
     <script src="app.js"></script>
 </body>
 <!-- made josseth -->

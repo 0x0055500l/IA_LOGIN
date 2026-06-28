@@ -384,3 +384,43 @@ body {
 }
 
 /* made josseth */
+
+/* intl-tel-input overrides for dark glassmorphism theme */
+.iti {
+    width: 100%;
+}
+.iti__country-list {
+    background-color: #1e293b;
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    scrollbar-width: thin;
+}
+.iti__country.iti__highlight {
+    background-color: rgba(59, 130, 246, 0.3);
+}
+.iti__selected-dial-code {
+    color: var(--text-main);
+}
+.iti__flag-container {
+    padding-left: 8px;
+}
+
+/* Mini Loader for email deep validation */
+.mini-loader {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 0.8s linear infinite;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    margin-top: -8px; /* centering adjust because translateY doesn't mix well if container uses it too */
+}
+.mini-loader.visible {
+    display: block;
+}

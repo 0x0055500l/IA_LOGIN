@@ -20,12 +20,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("secureLoginForm");
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
+  const phoneInput = document.getElementById("phone");
   const toggleBtn = document.getElementById("togglePassword");
   const emailError = document.getElementById("emailError");
   const passwordError = document.getElementById("passwordError");
+  const phoneError = document.getElementById("phoneError");
   const strengthBar = document.getElementById("strengthBar");
   const submitBtn = document.getElementById("submitBtn");
   const formFeedback = document.getElementById("formFeedback");
+  const emailLoader = document.getElementById("emailLoader");
+
+  // Initialize intlTelInput for advanced phone validation
+  const iti = window.intlTelInput(phoneInput, {
+    initialCountry: "hn",
+    preferredCountries: ["hn", "us", "mx", "es"],
+    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+  });
 
   // Rate Limiting Configuration
   const MAX_ATTEMPTS = 3;
@@ -79,10 +89,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // 5. Validation Logic
   const validators = {
     email: (value) => {
-      const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      // Regex avanzado que soporta TLDs complejos como .com.hn, .co.uk, etc.
+      const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
       if (!value) return "El correo es requerido.";
       if (!regex.test(value)) return "Formato de correo inválido.";
-      if (value.length > 50) return "El correo es demasiado largo.";
+      if (value.length > 60) return "El correo es demasiado largo.";
       return null;
     },
     password: (value) => {
@@ -98,6 +109,9 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Live Validation & Prediction
+  let emailCheckTimeout = null;
+  let isEmailValidDeep = false;
+
   emailInput.addEventListener("input", (e) => {
     // Prevent typing non-email friendly characters roughly
     const clean = sanitizeInput(e.target.value.trim());
@@ -105,7 +119,66 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target.value = clean;
     }
     const err = validators.email(clean);
-    showError(emailError, err);
+    
+    // Clear previous timeout
+    clearTimeout(emailCheckTimeout);
+    isEmailValidDeep = false;
+    emailLoader.classList.remove("visible");
+    
+    if (err) {
+      showError(emailError, err);
+    } else {
+      showError(emailError, null);
+      // Simulate Deep Validation (Ping MX records / Backend check)
+      emailLoader.classList.add("visible");
+      
+      emailCheckTimeout = setTimeout(() => {
+        // Simulación de respuesta de backend
+        emailLoader.classList.remove("visible");
+        if (clean === "test@error.com") {
+          showError(emailError, "Este correo no existe o no puede recibir mensajes.");
+          isEmailValidDeep = false;
+        } else {
+          showError(emailError, null); // Valid!
+          isEmailValidDeep = true;
+        }
+      }, 1200); // 1.2s delay to simulate network
+    }
+  });
+
+  phoneInput.addEventListener("input", (e) => {
+    const originalValue = e.target.value;
+    // Permitir solo el signo + al principio y números después.
+    const sanitizedValue = originalValue.replace(/(?!^\+)[^\d\s-]/g, '');
+    
+    if (originalValue !== sanitizedValue) {
+      e.target.value = sanitizedValue;
+      showError(phoneError, "Solo se permiten números en este campo.");
+      return;
+    }
+
+    if (!sanitizedValue.trim()) {
+      showError(phoneError, null);
+      return;
+    }
+
+    // Validación en tiempo real del tamaño y formato según el país
+    if (iti.isValidNumber()) {
+      showError(phoneError, null);
+    } else {
+      showError(phoneError, "Formato o longitud de número inválido para el país.");
+    }
+  });
+
+  // Re-validar si el usuario cambia el país desde el selector (bandera)
+  phoneInput.addEventListener("countrychange", () => {
+    if (phoneInput.value.trim()) {
+      if (iti.isValidNumber()) {
+        showError(phoneError, null);
+      } else {
+        showError(phoneError, "El número no coincide con el país seleccionado.");
+      }
+    }
   });
 
   passwordInput.addEventListener("input", (e) => {
@@ -166,10 +239,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const emailErr = validators.email(email);
     const passErr = validators.password(password);
+    
+    let hasError = false;
 
-    if (emailErr || passErr) {
+    if (emailErr) {
       showError(emailError, emailErr);
+      hasError = true;
+    } else if (!isEmailValidDeep) {
+      showError(emailError, "Espera a la validación del correo o ingresa uno válido.");
+      hasError = true;
+    }
+
+    if (passErr) {
       showError(passwordError, passErr);
+      hasError = true;
+    }
+
+    if (!iti.isValidNumber()) {
+      showError(phoneError, "Número telefónico inválido para la región seleccionada.");
+      hasError = true;
+    }
+
+    if (hasError) {
       triggerShake(form);
       return;
     }
@@ -229,6 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function disableForm(msg) {
     emailInput.disabled = true;
     passwordInput.disabled = true;
+    phoneInput.disabled = true;
     submitBtn.disabled = true;
     formFeedback.textContent = msg;
     formFeedback.className = "form-feedback feedback-warning";
@@ -237,6 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function enableForm() {
     emailInput.disabled = false;
     passwordInput.disabled = false;
+    phoneInput.disabled = false;
     submitBtn.disabled = false;
     formFeedback.textContent = "";
   }
