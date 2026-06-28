@@ -32,8 +32,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize intlTelInput for advanced phone validation
   const iti = window.intlTelInput(phoneInput, {
-    initialCountry: "hn",
-    preferredCountries: ["hn", "us", "mx", "es"],
+    allowDropdown: false, // Deshabilita el selector manual
+    nationalMode: false,  // Permite e incita a escribir códigos internacionales (ej: +504)
+    autoHideDialCode: false,
+    initialCountry: "",   // Lo dejamos vacío para que aparezca un placeholder (globo) hasta que escriba
     utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
   });
 
@@ -157,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (!sanitizedValue.trim()) {
+    if (!sanitizedValue.trim() || sanitizedValue.trim() === "+") {
       showError(phoneError, null);
       return;
     }
