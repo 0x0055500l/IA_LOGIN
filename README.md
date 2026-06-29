@@ -19,9 +19,11 @@ Este proyecto incorpora múltiples barreras del lado del cliente para simular e 
    - Implementa un bucle `debugger` que interrumpe la ejecución y bloquea la interfaz si se fuerza la apertura de las herramientas de desarrollador.
 2. **Protección contra Fuerza Bruta (Rate Limiting Simulado):**
    - Sistema de bloqueo por límite de intentos. Si se falla 3 veces, el formulario se bloquea por 30 segundos, guardando el estado temporal en `localStorage`.
-3. **Validación en Tiempo Real & Anti-XSS:**
-   - Sanatización estricta de las entradas del usuario para prevenir inyección de código.
-   - Barra de progreso interactiva que evalúa la fortaleza de la contraseña ingresada en tiempo real.
+3. **Validación Avanzada (Tiempo Real, Anti-XSS & Deep Checks):**
+   - **Teléfono Internacional Inteligente:** Campo telefónico que arranca neutral. Al escribir el código de área (ej. `+504`), detecta automáticamente el país, muestra su bandera, y calibra su validación matemática en tiempo real para exigir la longitud exacta de dígitos de esa nación. No permite el ingreso de letras.
+   - **Validación Profunda de Correo:** Soporta dominios complejos (`.com.hn`). Incorpora un *loader* asíncrono que simula consultar a un servidor Backend/MX si el buzón existe realmente antes de permitir el submit. (Rechaza `test@error.com` intencionalmente para pruebas).
+   - Sanatización estricta de las entradas para prevenir inyección de código (XSS).
+   - Barra de progreso que evalúa la fortaleza de la contraseña en tiempo real.
 4. **Honeypot para Bots (Anti-Spam):**
    - Campo oculto para engañar a los bots automatizados. Si se llena, la solicitud falla silenciosamente, previniendo ataques de fuerza bruta automatizados o spam.
 5. **Anti-Clickjacking:**
