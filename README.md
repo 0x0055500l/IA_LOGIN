@@ -2,6 +2,8 @@
 
 Un sistema de inicio de sesión moderno, altamente interactivo y enfocado en la seguridad, construido con **HTML5, CSS3 (Vanilla) y JavaScript**.
 
+<img src="https://github.com/0x0055500l/IA_LOGIN/blob/main/Screenshot%202026-06-28%20213835.png" alt="Imagen Ilustrativa" width="800"/>
+
 ## 🎨 Características de Diseño (UI/UX)
 - **Glassmorphism:** Efectos de cristal esmerilado que brindan profundidad y elegancia a la interfaz.
 - **Tipografía Premium:** Uso de la fuente "Outfit" para asegurar una lectura limpia y un aspecto futurista.
