@@ -283,7 +283,19 @@ document.addEventListener("DOMContentLoaded", () => {
         formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
         formFeedback.className = "form-feedback feedback-success";
         localStorage.removeItem("loginAttempts");
-        // window.location.href = '/dashboard';
+        localStorage.setItem(
+          "expertUser",
+          JSON.stringify({
+            email,
+            passwordCorrect: true,
+            lastLogin: new Date().toISOString(),
+          }),
+        );
+        if (!localStorage.getItem("registeredDevice")) {
+          localStorage.setItem("registeredDevice", "false");
+        }
+        localStorage.setItem("expertSession", "active");
+        window.location.href = "dashboard.html";
       } else {
         handleFailedAttempt();
       }
