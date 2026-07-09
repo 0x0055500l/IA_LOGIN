@@ -31,9 +31,11 @@ body {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
-    overflow: hidden;
+    align-items: flex-start;
+    overflow-x: hidden;
+    overflow-y: auto;
     position: relative;
+    padding: 40px 16px;
     /* Prevent context menu (right click) on mobile */
     -webkit-touch-callout: none;
 }
@@ -93,7 +95,8 @@ body {
     border-radius: 24px;
     padding: 40px;
     width: 100%;
-    max-width: 420px;
+    max-width: 460px;
+    margin: auto;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     transform: translateY(20px);
     opacity: 0;
@@ -112,8 +115,18 @@ body {
     margin-bottom: 30px;
 }
 
-.login-header h2 {
+.login-header h1 {
     font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    background: linear-gradient(to right, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* h2 style kept for backward compat */
+.login-header h2 {
+    font-size: 24px;
     font-weight: 600;
     margin-bottom: 8px;
     background: linear-gradient(to right, #fff, #94a3b8);
@@ -218,13 +231,60 @@ body {
     transition: width 0.3s, background-color 0.3s;
 }
 
-/* Risk / Camera Panel */
+/* Risk / Camera Panel — Collapsible */
+.fraud-section {
+    margin-top: 24px;
+    width: 100%;
+}
+
+.fraud-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    color: var(--text-main);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.fraud-toggle-btn:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.fraud-toggle-btn .toggle-icon {
+    transition: transform 0.3s ease;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.fraud-toggle-btn.active .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.fraud-panel-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fraud-panel-wrapper.open {
+    max-height: 800px;
+}
+
 .risk-panel {
     background: rgba(15, 23, 42, 0.55);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border-radius: 0 0 16px 16px;
+    border-top: none;
     padding: 16px;
-    margin-bottom: 18px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -403,14 +463,28 @@ body {
     color: var(--warning-color);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+    body {
+        padding: 20px 12px;
+    }
+
     .login-container {
-        margin: 20px;
-        padding: 30px 20px;
+        padding: 28px 18px;
+        border-radius: 18px;
     }
 
     .transaction-grid {
         grid-template-columns: 1fr;
+    }
+
+    .login-header h1 {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 380px) {
+    .login-container {
+        padding: 22px 14px;
     }
 }
 

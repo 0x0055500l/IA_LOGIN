@@ -279,7 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
       hour: transactionHourInput.value || "00:00",
       location: locationInput.value || "",
       lastLocation: lastLocationInput.value || "",
-      faceVerified: true,
+      faceVerified: faceVerified,
       faceImage: captureFrame(),
     };
 
@@ -314,7 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await evaluateFraudRisk();
   });
 
-  // 6. Form Submission & Spoofing Prevention
+  // 6. Form Submission — Server-side authentication
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -332,7 +332,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const emailErr = validators.email(email);
     const passErr = validators.password(password);
-    
+
     let hasError = false;
 
     if (emailErr) {
@@ -362,28 +362,46 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.disabled = true;
 
     try {
-      await new Promise((r) => setTimeout(r, 1500));
+      // Authenticate against the server instead of comparing hardcoded strings
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          phone: iti.getNumber(),
+        }),
+      });
 
-      const isSuccess = email === "test@test.com" && password === "Test1234!";
+      const result = await response.json();
 
-      if (isSuccess) {
+      if (response.ok && result.success) {
         formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
         formFeedback.className = "form-feedback feedback-success";
         localStorage.removeItem("loginAttempts");
-       window.location.href = 'dashboard.html';
+        // Small delay so user sees the success message
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 800);
       } else {
-        handleFailedAttempt();
+        // Server rejected credentials
+        if (result.locked) {
+          disableForm(result.message || "Cuenta bloqueada temporalmente.");
+        } else {
+          handleFailedAttempt(result.message);
+        }
       }
     } catch (error) {
-      formFeedback.textContent = "Error de conexión segura.";
+      formFeedback.textContent = "Error de conexión con el servidor.";
       formFeedback.className = "form-feedback feedback-error";
+      console.error("Login error:", error);
     } finally {
       submitBtn.classList.remove("loading");
       if (!checkRateLimit()) submitBtn.disabled = false;
     }
   });
 
-  function handleFailedAttempt() {
+  function handleFailedAttempt(serverMessage) {
     let attempts = parseInt(localStorage.getItem("loginAttempts") || "0");
     attempts++;
     localStorage.setItem("loginAttempts", attempts);
@@ -395,7 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("lockoutEnd", lockoutEnd);
       checkRateLimit();
     } else {
-      formFeedback.textContent = `Credenciales incorrectas. Intento ${attempts}/${MAX_ATTEMPTS}`;
+      formFeedback.textContent = serverMessage || `Credenciales incorrectas. Intento ${attempts}/${MAX_ATTEMPTS}`;
       formFeedback.className = "form-feedback feedback-error";
     }
   }
@@ -631,6 +649,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     animateBg();
+  }
+
+  // 10. Collapsible Fraud Panel Toggle
+  const fraudToggleBtn = document.getElementById("fraudToggleBtn");
+  const fraudPanelWrapper = document.getElementById("fraudPanelWrapper");
+
+  if (fraudToggleBtn && fraudPanelWrapper) {
+    fraudToggleBtn.addEventListener("click", () => {
+      fraudToggleBtn.classList.toggle("active");
+      fraudPanelWrapper.classList.toggle("open");
+
+      // Update border radius when open
+      if (fraudPanelWrapper.classList.contains("open")) {
+        fraudToggleBtn.style.borderRadius = "14px 14px 0 0";
+      } else {
+        fraudToggleBtn.style.borderRadius = "14px";
+      }
+    });
   }
 });
 
