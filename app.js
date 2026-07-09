@@ -370,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
         formFeedback.className = "form-feedback feedback-success";
         localStorage.removeItem("loginAttempts");
-        // window.location.href = '/dashboard';
+       window.location.href = 'dashboard.html';
       } else {
         handleFailedAttempt();
       }
