@@ -29,15 +29,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitBtn = document.getElementById("submitBtn");
   const formFeedback = document.getElementById("formFeedback");
   const emailLoader = document.getElementById("emailLoader");
+  const scanFaceBtn = document.getElementById("scanFaceBtn");
+  const faceVideo = document.getElementById("faceVideo");
+  const captureCanvas = document.getElementById("captureCanvas");
+  const cameraStatus = document.getElementById("cameraStatus");
+  const riskSummary = document.getElementById("riskSummary");
+  const amountInput = document.getElementById("amount");
+  const transactionHourInput = document.getElementById("transactionHour");
+  const locationInput = document.getElementById("location");
+  const lastLocationInput = document.getElementById("lastLocation");
 
   // Initialize intlTelInput for advanced phone validation
   const iti = window.intlTelInput(phoneInput, {
-    allowDropdown: false, // Deshabilita el selector manual
-    nationalMode: false,  // Permite e incita a escribir códigos internacionales (ej: +504)
+    allowDropdown: false,
+    nationalMode: false,
     autoHideDialCode: false,
-    initialCountry: "",   // Lo dejamos vacío para que aparezca un placeholder (globo) hasta que escriba
+    initialCountry: "hn",
+    preferredCountries: ["hn"],
     utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
   });
+
+  phoneInput.value = "+504";
 
   // Rate Limiting Configuration
   const MAX_ATTEMPTS = 3;
@@ -223,6 +235,85 @@ document.addEventListener("DOMContentLoaded", () => {
       type === "text" ? "var(--primary-color)" : "var(--text-muted)";
   });
 
+  let faceVerified = false;
+  let streamActive = false;
+
+  async function startCamera() {
+    if (streamActive) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      faceVideo.srcObject = stream;
+      await faceVideo.play();
+      streamActive = true;
+      cameraStatus.textContent = "Cámara activa. Presiona Escanear Rostro.";
+      cameraStatus.className = "camera-status";
+    } catch (error) {
+      cameraStatus.textContent = "No se pudo acceder a la cámara. Usa un navegador con permisos.";
+      cameraStatus.className = "camera-status error";
+      console.error(error);
+    }
+  }
+
+  function captureFrame() {
+    const context = captureCanvas.getContext("2d");
+    captureCanvas.width = faceVideo.videoWidth || 320;
+    captureCanvas.height = faceVideo.videoHeight || 240;
+    context.drawImage(faceVideo, 0, 0, captureCanvas.width, captureCanvas.height);
+    return captureCanvas.toDataURL("image/png");
+  }
+
+  async function evaluateFraudRisk() {
+    if (!streamActive) {
+      await startCamera();
+    }
+
+    scanFaceBtn.disabled = true;
+    scanFaceBtn.textContent = "Analizando…";
+    cameraStatus.textContent = "Procesando rostro y reglas antifraude…";
+    riskSummary.textContent = "Evaluando riesgo de la transacción…";
+    riskSummary.className = "risk-summary";
+
+    const payload = {
+      amount: Number(amountInput.value || 0),
+      hour: transactionHourInput.value || "00:00",
+      location: locationInput.value || "",
+      lastLocation: lastLocationInput.value || "",
+      faceVerified: true,
+      faceImage: captureFrame(),
+    };
+
+    try {
+      const response = await fetch("http://localhost:3000/api/fraud-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      faceVerified = result.faceMatch && result.faceMatch !== false;
+      riskSummary.textContent = `${result.decision} Score de riesgo: ${result.score} (${result.level}).`;
+      riskSummary.className = `risk-summary ${result.level === "alto" ? "warning" : result.level === "medio" ? "warning" : "success"}`;
+      cameraStatus.textContent = faceVerified ? "Rostro verificado con éxito." : "El rostro no coincidió con el perfil legítimo.";
+      if (result.level !== "bajo") {
+        formFeedback.textContent = "Se requiere verificación facial previa a la aprobación.";
+        formFeedback.className = "form-feedback feedback-warning";
+      }
+    } catch (error) {
+      riskSummary.textContent = "No fue posible contactar al motor antifraude.";
+      riskSummary.className = "risk-summary error";
+      cameraStatus.textContent = "Error de conexión con el backend.";
+      console.error(error);
+    } finally {
+      scanFaceBtn.disabled = false;
+      scanFaceBtn.textContent = "Escanear Rostro";
+    }
+  }
+
+  scanFaceBtn.addEventListener("click", async () => {
+    await evaluateFraudRisk();
+  });
+
   // 6. Form Submission & Spoofing Prevention
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -267,23 +358,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Simulate secure API call
     submitBtn.classList.add("loading");
     submitBtn.disabled = true;
 
     try {
-      // Simulate network delay
       await new Promise((r) => setTimeout(r, 1500));
 
-      // Randomly fail to simulate brute force prevention feedback (or just a fake backend logic)
-      // For demo purposes, let's hardcode a success if email is test@test.com
       const isSuccess = email === "test@test.com" && password === "Test1234!";
 
       if (isSuccess) {
-        formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
-        formFeedback.className = "form-feedback feedback-success";
-        localStorage.removeItem("loginAttempts");
-        // window.location.href = '/dashboard';
+        if (!faceVerified) {
+          formFeedback.textContent = "Se requiere la verificación facial antes de aprobar la transacción ficticia.";
+          formFeedback.className = "form-feedback feedback-warning";
+        } else {
+          formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
+          formFeedback.className = "form-feedback feedback-success";
+          localStorage.removeItem("loginAttempts");
+        }
       } else {
         handleFailedAttempt();
       }

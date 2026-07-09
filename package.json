@@ -1,0 +1,13 @@
+{
+  "name": "ia-login-fraud-check",
+  "version": "1.0.0",
+  "description": "Demo de login seguro con verificación facial y motor antifraude",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.2",
+    "express": "^4.21.2"
+  }
+}

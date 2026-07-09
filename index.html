@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure & Elegant Login</title>
+    <title>Secure & Elegant Login </title>
     <!-- Content Security Policy to prevent XSS and data injection -->
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://cdnjs.cloudflare.com;">
@@ -86,6 +86,44 @@
                 <div class="strength-meter" id="strengthMeter">
                     <div class="strength-bar" id="strengthBar"></div>
                 </div>
+            </div>
+
+            <div class="risk-panel">
+                <div class="risk-panel-header">
+                    <h3>Verificación Antifraude</h3>
+                    <p>Analiza la transacción ficticia con cámara y reglas expertas.</p>
+                </div>
+
+                <div class="transaction-grid">
+                    <div class="input-group compact">
+                        <label for="amount">Monto</label>
+                        <input type="number" id="amount" name="amount" min="1" value="4200">
+                    </div>
+                    <div class="input-group compact">
+                        <label for="transactionHour">Hora</label>
+                        <input type="time" id="transactionHour" name="transactionHour" value="23:30">
+                    </div>
+                </div>
+
+                <div class="transaction-grid">
+                    <div class="input-group compact">
+                        <label for="location">Ubicación actual</label>
+                        <input type="text" id="location" name="location" value="Tegucigalpa">
+                    </div>
+                    <div class="input-group compact">
+                        <label for="lastLocation">Última compra</label>
+                        <input type="text" id="lastLocation" name="lastLocation" value="San Pedro Sula">
+                    </div>
+                </div>
+
+                <div class="camera-card">
+                    <video id="faceVideo" autoplay playsinline muted></video>
+                    <button type="button" id="scanFaceBtn" class="scan-btn">Escanear Rostro</button>
+                    <div id="cameraStatus" class="camera-status">Listo para activar la cámara.</div>
+                    <canvas id="captureCanvas" hidden></canvas>
+                </div>
+
+                <div id="riskSummary" class="risk-summary">Esperando evaluación del riesgo…</div>
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn">

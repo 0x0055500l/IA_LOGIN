@@ -218,6 +218,114 @@ body {
     transition: width 0.3s, background-color 0.3s;
 }
 
+/* Risk / Camera Panel */
+.risk-panel {
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.risk-panel-header h3 {
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.risk-panel-header p {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.transaction-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.input-group.compact {
+    margin-bottom: 0;
+}
+
+.input-group.compact label {
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.input-group.compact input {
+    padding: 12px 14px;
+    font-size: 14px;
+}
+
+.camera-card {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(2, 6, 23, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#faceVideo {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 12px;
+    object-fit: cover;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.scan-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, var(--primary-color), #38bdf8);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.scan-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2);
+}
+
+.camera-status {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.risk-summary {
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #dbeafe;
+    min-height: 44px;
+}
+
+.risk-summary.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fde68a;
+}
+
+.risk-summary.success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #bbf7d0;
+}
+
+.risk-summary.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fecaca;
+}
+
 /* Submit Button */
 .submit-btn {
     width: 100%;
@@ -299,6 +407,10 @@ body {
     .login-container {
         margin: 20px;
         padding: 30px 20px;
+    }
+
+    .transaction-grid {
+        grid-template-columns: 1fr;
     }
 }
 
