@@ -367,14 +367,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const isSuccess = email === "test@test.com" && password === "Test1234!";
 
       if (isSuccess) {
-        if (!faceVerified) {
-          formFeedback.textContent = "Se requiere la verificación facial antes de aprobar la transacción ficticia.";
-          formFeedback.className = "form-feedback feedback-warning";
-        } else {
-          formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
-          formFeedback.className = "form-feedback feedback-success";
-          localStorage.removeItem("loginAttempts");
-        }
+        formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
+        formFeedback.className = "form-feedback feedback-success";
+        localStorage.removeItem("loginAttempts");
+        // window.location.href = '/dashboard';
       } else {
         handleFailedAttempt();
       }
