@@ -276,6 +276,7 @@ function initializeDashboard(user, expiresAt) {
   const navConfig = document.getElementById('navConfig');
   const dashboardView = document.getElementById('dashboardView');
   const settingsView = document.getElementById('settingsView');
+  const historialView = document.getElementById('historialView');
 
   // SPA Navigation handlers
   if (navInicio && navConfig && dashboardView && settingsView) {
@@ -283,16 +284,22 @@ function initializeDashboard(user, expiresAt) {
       e.preventDefault();
       dashboardView.style.display = 'grid';
       settingsView.style.display = 'none';
+      if (historialView) historialView.style.display = 'none';
       navInicio.classList.add('active');
       navConfig.classList.remove('active');
+      const navHistorial = document.getElementById('navHistorial');
+      if (navHistorial) navHistorial.classList.remove('active');
     });
 
     navConfig.addEventListener('click', (e) => {
       e.preventDefault();
       settingsView.style.display = 'block';
       dashboardView.style.display = 'none';
+      if (historialView) historialView.style.display = 'none';
       navConfig.classList.add('active');
       navInicio.classList.remove('active');
+      const navHistorial = document.getElementById('navHistorial');
+      if (navHistorial) navHistorial.classList.remove('active');
     });
 
     // Incomplete routes show nice warning; historial loads the historial module
@@ -312,6 +319,16 @@ function initializeDashboard(user, expiresAt) {
     if (historialBtn) {
       historialBtn.addEventListener('click', async (e) => {
         e.preventDefault();
+
+        // Show historial view and hide others
+        if (historialView) historialView.style.display = 'block';
+        if (dashboardView) dashboardView.style.display = 'none';
+        if (settingsView) settingsView.style.display = 'none';
+
+        // Update active menu states
+        if (navInicio) navInicio.classList.remove('active');
+        if (navConfig) navConfig.classList.remove('active');
+        historialBtn.classList.add('active');
 
         // If the module is already loaded, call it directly
         if (window.initHistorialView && typeof window.initHistorialView === 'function') {
