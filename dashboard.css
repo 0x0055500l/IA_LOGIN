@@ -1740,3 +1740,160 @@ body.theme-light .btn-secondary:hover {
   background: rgba(15, 23, 42, 0.08);
 }
 
+/* ─── Fila Superior Bancaria e Historial de Transacciones ────────────────── */
+.banking-top-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 768px) {
+  .banking-top-row {
+    grid-template-columns: 1fr;
+  }
+}
+.balance-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.balance-main {
+  display: flex;
+  flex-direction: column;
+}
+.balance-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.balance-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--success);
+}
+.balance-limits {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+}
+.balance-limits div {
+  display: flex;
+  flex-direction: column;
+}
+.balance-limits span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.balance-limits strong {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.balance-security-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+}
+.lock-icon {
+  font-size: 2rem;
+  margin-bottom: 6px;
+  color: var(--danger);
+  animation: pulse 1s infinite alternate;
+}
+.security-status-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.security-status-column .status-card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.security-status-column .status-label {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+/* Simulador y Transacciones */
+.simulator-actions {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+@media (max-width: 600px) {
+  .simulator-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+.simulator-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.simulator-input-group label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.simulator-input-group input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+}
+.transactions-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
+}
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px;
+  font-size: 0.85rem;
+}
+.transactions-table th,
+.transactions-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.transactions-table th {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  font-weight: 600;
+}
+.transactions-table tr:last-child td {
+  border-bottom: none;
+}
+.text-center { text-align: center !important; }
+
+/* Light Theme overrides */
+body.theme-light .transactions-table-wrapper {
+  background: rgba(255, 255, 255, 0.6);
+}
+body.theme-light .transactions-table th {
+  background: rgba(15, 23, 42, 0.03);
+}
+body.theme-light .simulator-input-group input {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+body.theme-light .security-status-column .status-card-item {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+

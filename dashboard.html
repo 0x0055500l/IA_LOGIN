@@ -144,6 +144,58 @@
               </div>
             </div>
 
+            <!-- Fila superior: Monto Disponible & Estado de Seguridad -->
+            <div class="banking-top-row">
+              <!-- Bloque de Monto Disponible -->
+              <div class="banking-block balance-block">
+                <h4 class="block-title">💰 Monto Disponible</h4>
+                
+                <!-- Contenido del Saldo (Visible por defecto, se oculta si está bloqueado/inseguro) -->
+                <div id="balanceContent" class="balance-content">
+                  <div class="balance-main">
+                    <span class="balance-label">Saldo Actual</span>
+                    <strong class="balance-value">$5,248.50</strong>
+                  </div>
+                  <div class="balance-limits">
+                    <div>
+                      <span>Límite de Compra:</span>
+                      <strong>$2,000.00</strong>
+                    </div>
+                    <div>
+                      <span>Máx. Transferencia:</span>
+                      <strong>$1,500.00</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mensaje de Seguridad (Oculto por defecto, se muestra si está bloqueado/inseguro) -->
+                <div id="balanceSecurityOverlay" class="balance-security-overlay" style="display: none;">
+                  <span class="lock-icon">🔒</span>
+                  <strong>Saldo Oculto por Seguridad</strong>
+                  <p>Tarjeta bloqueada o dispositivo no seguro.</p>
+                </div>
+              </div>
+
+              <!-- Bloques de Estado de Seguridad (Cards de Estado) -->
+              <div class="banking-block security-summary-block">
+                <h4 class="block-title">🛡️ Estado de Seguridad</h4>
+                <div class="security-status-column">
+                  <div class="status-card-item">
+                    <span class="status-label">Estado Tarjeta</span>
+                    <strong id="statusCardVal" class="status-value val-pending">Pendiente</strong>
+                  </div>
+                  <div class="status-card-item">
+                    <span class="status-label">Biometría Facial</span>
+                    <strong id="statusFaceVal" class="status-value val-pending">Pendiente</strong>
+                  </div>
+                  <div class="status-card-item">
+                    <span class="status-label">Estado Dispositivo</span>
+                    <strong id="statusDeviceVal" class="status-value val-pending">Verificando...</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="banking-grid">
               <!-- Bloque 1: Ingreso de Tarjeta -->
               <div class="banking-block card-entry-block">
@@ -181,19 +233,38 @@
               </div>
             </div>
 
-            <!-- Bloques de Estado de Seguridad (Cards de Estado) -->
-            <div class="security-status-row">
-              <div class="status-card-item">
-                <span class="status-label">Estado Tarjeta</span>
-                <strong id="statusCardVal" class="status-value val-pending">Pendiente</strong>
+            <!-- Simulador de Operaciones (Para añadir transacciones al historial) -->
+            <div class="banking-block operation-simulator-block" style="margin-bottom: 16px;">
+              <h4 class="block-title">⚡ Simulador de Transacciones Rápidas</h4>
+              <div class="simulator-actions">
+                <div class="simulator-input-group">
+                  <label for="transactionAmount">Monto ($)</label>
+                  <input type="number" id="transactionAmount" placeholder="150.00" min="1" step="0.01">
+                </div>
+                <button type="button" id="btnSimulatePurchase" class="banking-btn btn-secondary">Simular Compra</button>
+                <button type="button" id="btnSimulateTransfer" class="banking-btn btn-secondary">Simular Transferencia</button>
               </div>
-              <div class="status-card-item">
-                <span class="status-label">Biometría Facial</span>
-                <strong id="statusFaceVal" class="status-value val-pending">Pendiente</strong>
-              </div>
-              <div class="status-card-item">
-                <span class="status-label">Estado Dispositivo</span>
-                <strong id="statusDeviceVal" class="status-value val-pending">Verificando...</strong>
+            </div>
+
+            <!-- Bloque de Historial de Transacciones (Operaciones) -->
+            <div class="banking-block transactions-history-block" style="margin-bottom: 16px;">
+              <h4 class="block-title">📜 Historial de Transacciones</h4>
+              <div class="transactions-table-wrapper">
+                <table class="transactions-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha / Hora</th>
+                      <th>Operación</th>
+                      <th>Monto</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bankingTransactionsList">
+                    <tr>
+                      <td colspan="4" class="text-center text-muted" style="padding: 12px;">No hay transacciones registradas.</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -201,6 +272,7 @@
             <div class="banking-actions">
               <button type="button" id="btnValidateAccess" class="banking-btn btn-primary">Validar acceso</button>
               <button type="button" id="btnBlockCard" class="banking-btn btn-danger">Bloquear tarjeta</button>
+              <button type="button" id="btnReactivateCard" class="banking-btn btn-success" style="display: none;">Reactivar tarjeta</button>
               <button type="button" id="btnReviewAlerts" class="banking-btn btn-warning">Revisar alertas</button>
             </div>
 

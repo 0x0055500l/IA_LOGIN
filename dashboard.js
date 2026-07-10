@@ -1006,6 +1006,7 @@ function setupInteractiveBanking(user) {
   const scannerStatusText = document.getElementById('scannerStatusText');
   const btnValidateAccess = document.getElementById('btnValidateAccess');
   const btnBlockCard = document.getElementById('btnBlockCard');
+  const btnReactivateCard = document.getElementById('btnReactivateCard');
   const btnReviewAlerts = document.getElementById('btnReviewAlerts');
 
   const statusCardVal = document.getElementById('statusCardVal');
@@ -1014,8 +1015,23 @@ function setupInteractiveBanking(user) {
   const bankingRiskAlert = document.getElementById('bankingRiskAlert');
   const bankingAuditList = document.getElementById('bankingAuditList');
 
+  // Balance and Simulator Elements
+  const balanceContent = document.getElementById('balanceContent');
+  const balanceSecurityOverlay = document.getElementById('balanceSecurityOverlay');
+  const transactionAmountInput = document.getElementById('transactionAmount');
+  const btnSimulatePurchase = document.getElementById('btnSimulatePurchase');
+  const btnSimulateTransfer = document.getElementById('btnSimulateTransfer');
+  const bankingTransactionsList = document.getElementById('bankingTransactionsList');
+
   let faceValidated = false;
-  let cardBlocked = false;
+  let cardBlocked = localStorage.getItem('cardBlockedState') === 'true';
+  let balance = parseFloat(localStorage.getItem('cardBalanceVal') || '5248.50');
+
+  // Update Admin-Only Visibility
+  const isAdmin = user && user.role === 'admin';
+  if (btnReactivateCard) {
+    btnReactivateCard.style.display = isAdmin ? 'block' : 'none';
+  }
 
   // Helper to log in local audit log
   function addAuditLog(text, type = '') {
@@ -1025,6 +1041,72 @@ function setupInteractiveBanking(user) {
     const time = new Date().toLocaleTimeString();
     li.textContent = `[${time}] ${text}`;
     bankingAuditList.prepend(li);
+  }
+
+  // Load and Render Transaction History from localStorage
+  function getTransactions() {
+    return JSON.parse(localStorage.getItem('bankingTransactions') || '[]');
+  }
+
+  function saveTransaction(op, amount, status) {
+    const list = getTransactions();
+    const newTx = {
+      date: new Date().toLocaleDateString(),
+      time: new Date().toLocaleTimeString(),
+      operation: op,
+      amount: amount ? `$${parseFloat(amount).toFixed(2)}` : '—',
+      status: status
+    };
+    list.unshift(newTx);
+    if (list.length > 10) list.pop(); // keep last 10
+    localStorage.setItem('bankingTransactions', JSON.stringify(list));
+    renderTransactionsTable();
+  }
+
+  function renderTransactionsTable() {
+    if (!bankingTransactionsList) return;
+    const list = getTransactions();
+    if (list.length === 0) {
+      bankingTransactionsList.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center text-muted" style="padding: 12px;">No hay transacciones registradas.</td>
+        </tr>
+      `;
+      return;
+    }
+    bankingTransactionsList.innerHTML = list.map(tx => {
+      let statusClass = 'val-pending';
+      if (tx.status === 'Aprobado') statusClass = 'val-success';
+      if (tx.status === 'Denegado') statusClass = 'val-danger';
+
+      return `
+        <tr>
+          <td>${tx.date} ${tx.time}</td>
+          <td><strong>${tx.operation}</strong></td>
+          <td>${tx.amount}</td>
+          <td><span class="${statusClass}">${tx.status}</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Dynamic balance visibility based on security rules
+  function updateBalanceAndSecurityUI() {
+    const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+    const isSecure = isDeviceTrusted && !cardBlocked;
+
+    if (balanceContent && balanceSecurityOverlay) {
+      if (isSecure) {
+        balanceContent.style.display = 'block';
+        balanceSecurityOverlay.style.display = 'none';
+        // Update balance value in UI
+        const balValEl = balanceContent.querySelector('.balance-value');
+        if (balValEl) balValEl.textContent = `$${balance.toFixed(2)}`;
+      } else {
+        balanceContent.style.display = 'none';
+        balanceSecurityOverlay.style.display = 'flex';
+      }
+    }
   }
 
   // Auto-update device trust card on load
@@ -1040,8 +1122,21 @@ function setupInteractiveBanking(user) {
       statusDeviceVal.className = 'status-value val-danger';
       if (bankingRiskAlert) bankingRiskAlert.style.display = 'flex';
     }
+    updateBalanceAndSecurityUI();
   }
+
+  // Initialize UI values
   updateDeviceStatusBadge();
+  renderTransactionsTable();
+
+  // If card was previously blocked, update UI state
+  if (cardBlocked && statusCardVal) {
+    statusCardVal.textContent = '🛑 Bloqueada';
+    statusCardVal.className = 'status-value val-danger';
+  } else if (statusCardVal) {
+    statusCardVal.textContent = 'Pendiente';
+    statusCardVal.className = 'status-value val-pending';
+  }
 
   // Listen to storage changes to keep device status updated
   window.addEventListener('storage', updateDeviceStatusBadge);
@@ -1083,7 +1178,7 @@ function setupInteractiveBanking(user) {
   if (btnEvaluateFace && faceScannerView) {
     btnEvaluateFace.addEventListener('click', () => {
       if (cardBlocked) {
-        showToast('La tarjeta está bloqueada.', 'error');
+        showToast('La tarjeta está bloqueada. Comuníquese con el administrador.', 'error');
         return;
       }
       faceScannerView.className = 'face-scanner-view scanning';
@@ -1169,7 +1264,9 @@ function setupInteractiveBanking(user) {
   if (btnBlockCard) {
     btnBlockCard.addEventListener('click', () => {
       cardBlocked = true;
+      localStorage.setItem('cardBlockedState', 'true');
       faceValidated = false;
+
       if (statusCardVal) {
         statusCardVal.textContent = '🛑 Bloqueada';
         statusCardVal.className = 'status-value val-danger';
@@ -1186,11 +1283,140 @@ function setupInteractiveBanking(user) {
       if (cardExpiry) cardExpiry.value = '';
       if (cardCvv) cardCvv.value = '';
 
+      updateBalanceAndSecurityUI();
+      saveTransaction('Bloqueo Tarjeta', null, 'Aprobado');
       showToast('Tarjeta Bloqueada Correctamente', 'success');
       addAuditLog('🛑 TARJETA BLOQUEADA por el usuario. Acciones inhabilitadas.', 'val-danger');
 
       if (window.registrarAccion && typeof window.registrarAccion === 'function') {
         window.registrarAccion('tarjeta_bloqueada', 'advertencia', { user: user.email });
+      }
+    });
+  }
+
+  // Reactivate Card button (Admin-Only)
+  if (btnReactivateCard) {
+    btnReactivateCard.addEventListener('click', () => {
+      if (!isAdmin) {
+        showToast('Acción denegada: Requiere rol de Administrador.', 'error');
+        return;
+      }
+      cardBlocked = false;
+      localStorage.setItem('cardBlockedState', 'false');
+
+      if (statusCardVal) {
+        statusCardVal.textContent = '✓ Activa';
+        statusCardVal.className = 'status-value val-success';
+      }
+      updateBalanceAndSecurityUI();
+      saveTransaction('Reactivación Tarjeta', null, 'Aprobado');
+      showToast('Tarjeta reactivada con éxito', 'success');
+      addAuditLog('✓ TARJETA REACTIVADA por el Administrador.', 'val-success');
+
+      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+        window.registrarAccion('tarjeta_reactivada', 'exito', { user: user.email });
+      }
+    });
+  }
+
+  // Simulated Purchases
+  if (btnSimulatePurchase) {
+    btnSimulatePurchase.addEventListener('click', () => {
+      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
+      const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+
+      if (cardBlocked) {
+        showToast('Transacción denegada: Tarjeta bloqueada.', 'error');
+        addAuditLog('Compra denegada: Tarjeta bloqueada.', 'val-danger');
+        saveTransaction('Simulación Compra', amountVal, 'Denegado');
+        return;
+      }
+      if (!isDeviceTrusted) {
+        showToast('Transacción denegada: Dispositivo inseguro.', 'error');
+        addAuditLog('Compra denegada: Dispositivo inseguro.', 'val-danger');
+        saveTransaction('Simulación Compra', amountVal, 'Denegado');
+        return;
+      }
+      if (!faceValidated) {
+        showToast('Transacción denegada: Falta biometría facial.', 'error');
+        addAuditLog('Compra denegada: Falta biometría facial.', 'val-danger');
+        saveTransaction('Simulación Compra', amountVal, 'Denegado');
+        return;
+      }
+      if (amountVal > 2000.00) {
+        showToast('Denegada: Excede límite de compra ($2,000.00)', 'error');
+        addAuditLog('Compra denegada: Excede límite de compra.', 'val-danger');
+        saveTransaction('Simulación Compra', amountVal, 'Denegado');
+        return;
+      }
+      if (amountVal > balance) {
+        showToast('Denegada: Saldo insuficiente.', 'error');
+        addAuditLog('Compra denegada: Saldo insuficiente.', 'val-danger');
+        saveTransaction('Simulación Compra', amountVal, 'Denegado');
+        return;
+      }
+
+      // Approve purchase
+      balance -= amountVal;
+      localStorage.setItem('cardBalanceVal', balance.toString());
+      updateBalanceAndSecurityUI();
+      saveTransaction('Compra Online', amountVal, 'Aprobado');
+      showToast('Compra aprobada con éxito', 'success');
+      addAuditLog(`✓ Compra aprobada por $${amountVal.toFixed(2)}.`, 'val-success');
+
+      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+        window.registrarAccion('compra_simulada', 'exito', { user: user.email, monto: amountVal });
+      }
+    });
+  }
+
+  // Simulated Transfers
+  if (btnSimulateTransfer) {
+    btnSimulateTransfer.addEventListener('click', () => {
+      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
+      const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+
+      if (cardBlocked) {
+        showToast('Transferencia denegada: Tarjeta bloqueada.', 'error');
+        addAuditLog('Transferencia denegada: Tarjeta bloqueada.', 'val-danger');
+        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+        return;
+      }
+      if (!isDeviceTrusted) {
+        showToast('Transferencia denegada: Dispositivo inseguro.', 'error');
+        addAuditLog('Transferencia denegada: Dispositivo inseguro.', 'val-danger');
+        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+        return;
+      }
+      if (!faceValidated) {
+        showToast('Transferencia denegada: Falta biometría facial.', 'error');
+        addAuditLog('Transferencia denegada: Falta biometría facial.', 'val-danger');
+        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+        return;
+      }
+      if (amountVal > 1500.00) {
+        showToast('Denegada: Excede límite de transferencia ($1,500.00)', 'error');
+        addAuditLog('Transferencia denegada: Excede límite.', 'val-danger');
+        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+        return;
+      }
+      if (amountVal > balance) {
+        showToast('Denegada: Saldo insuficiente.', 'error');
+        addAuditLog('Transferencia denegada: Saldo insuficiente.', 'val-danger');
+        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+        return;
+      }
+
+      // Approve transfer
+      balance -= amountVal;
+      localStorage.setItem('cardBalanceVal', balance.toString());
+      updateBalanceAndSecurityUI();
+      saveTransaction('Transferencia Enviada', amountVal, 'Aprobado');
+      showToast('Transferencia realizada con éxito', 'success');
+      addAuditLog(`✓ Transferencia realizada por $${amountVal.toFixed(2)}.`, 'val-success');
+
+      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+        window.registrarAccion('transferencia_simulada', 'exito', { user: user.email, monto: amountVal });
       }
     });
   }
