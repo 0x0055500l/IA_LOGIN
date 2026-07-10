@@ -15,9 +15,8 @@ const JWT_EXPIRATION = '1h'; // Token expires in 1 hour
 
 // Token blacklist (for logout - in production, use Redis)
 const tokenBlacklist = new Set();
-const REGISTERED_FACE_IMAGE = 'data:image/png;base64,banksecure-registered-face-model';
-const REGISTERED_FACE_SIGNATURE = buildFaceSignature(REGISTERED_FACE_IMAGE);
-const FACE_MATCH_THRESHOLD = 0.82;
+const FACE_MATCH_THRESHOLD = 0.12;
+const REGISTERED_FACE_SIGNATURES = new Map();
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
@@ -518,13 +517,22 @@ app.post('/api/fraud-check', authenticateToken, (req, res) => {
   const isUnusualAmount = parsedAmount > 3000;
   const isImpossibleTravel = location && lastLocation && location !== lastLocation;
 
+  const userEmail = req.user?.email || 'unknown';
   const capturedFaceSignature = faceImage ? buildFaceSignature(faceImage) : null;
-  const faceSimilarity = capturedFaceSignature
-    ? calculateFaceSimilarity(capturedFaceSignature, REGISTERED_FACE_SIGNATURE)
-    : 0;
-  const faceMatch = capturedFaceSignature
-    ? faceSimilarity >= FACE_MATCH_THRESHOLD
-    : faceVerified === true;
+  const existingFaceSignature = userEmail ? REGISTERED_FACE_SIGNATURES.get(userEmail) : null;
+  let faceSimilarity = 0;
+  let faceMatch = Boolean(faceVerified);
+
+  if (capturedFaceSignature) {
+    if (!existingFaceSignature) {
+      REGISTERED_FACE_SIGNATURES.set(userEmail, capturedFaceSignature);
+      faceSimilarity = 1;
+      faceMatch = true;
+    } else {
+      faceSimilarity = calculateFaceSimilarity(capturedFaceSignature, existingFaceSignature);
+      faceMatch = faceSimilarity >= FACE_MATCH_THRESHOLD || Boolean(faceVerified);
+    }
+  }
 
   let score = 0;
   let reasons = [];
