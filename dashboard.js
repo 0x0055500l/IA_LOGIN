@@ -179,15 +179,15 @@ function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast-notification ${type}`;
-  
+
   const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
   toast.innerHTML = `<span style="font-weight: bold;">${icon}</span> <span>${message}</span>`;
   document.body.appendChild(toast);
-  
+
   // Trigger reflow for animation
   toast.offsetHeight;
   toast.classList.add('show');
-  
+
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
@@ -197,7 +197,7 @@ function showToast(message, type = 'success') {
 // ─── Apply Language Globally ───
 function applyDashboardLanguage(lang) {
   localStorage.setItem('userLanguage', lang);
-  
+
   const elements = document.querySelectorAll('[data-i18n]');
   elements.forEach((el) => {
     const key = el.getAttribute('data-i18n');
@@ -208,10 +208,10 @@ function applyDashboardLanguage(lang) {
 
   const emailInput = document.getElementById('profileEmail');
   const nameInput = document.getElementById('profileName');
-  
+
   if (emailInput) emailInput.placeholder = lang === 'en' ? 'enter@email.com' : 'tu@correo.com.hn';
   if (nameInput) nameInput.placeholder = lang === 'en' ? 'Full Name' : 'Nombre Completo';
-  
+
   const selectLang = document.getElementById('systemLanguage');
   if (selectLang) selectLang.value = lang;
 }
@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = session.user;
     sessionStorage.setItem('userName', user.name);
     sessionStorage.setItem('userEmail', user.email);
-    
+
     // Store user preferences
     const prefs = user.preferences || { language: 'es', theme: 'dark', twoFactor: false, strictMode: false };
     sessionStorage.setItem('userPreferences', JSON.stringify(prefs));
@@ -405,7 +405,7 @@ function initializeDashboard(user, expiresAt) {
       try {
         const tokenNow = sessionStorage.getItem('authToken');
         if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-          try { window.registrarAccion('logout', 'exito', { user: sessionStorage.getItem('userEmail') }); } catch(_) {}
+          try { window.registrarAccion('logout', 'exito', { user: sessionStorage.getItem('userEmail') }); } catch (_) { }
         } else if (tokenNow) {
           await fetch('/api/logs/action', { method: 'POST', headers: { 'Authorization': `Bearer ${tokenNow}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'logout', resultado: 'exito', detalles: {} }) });
         }
@@ -477,7 +477,7 @@ function setupSettingsHandlers(user, expiresAt) {
     document.getElementById(paneId).classList.add('active');
 
     document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
-    
+
     const btnMap = {
       perfilTab: 'btnPerfilTab',
       idiomaTab: 'btnIdiomaTab',
@@ -491,7 +491,7 @@ function setupSettingsHandlers(user, expiresAt) {
   window.selectVisualTheme = function (theme) {
     applyVisualTheme(theme);
     savePreferencesApi({ theme });
-    
+
     const currentLang = localStorage.getItem('userLanguage') || 'es';
     showToast(DASHBOARD_TRANSLATIONS[currentLang].save_success_toast, 'success');
   };
@@ -509,14 +509,14 @@ function setupSettingsHandlers(user, expiresAt) {
     langForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const newLang = document.getElementById('systemLanguage').value;
-      
+
       applyDashboardLanguage(newLang);
       await savePreferencesApi({ language: newLang });
 
       // Refresh expert system rendering in chosen language
       const prefs = JSON.parse(sessionStorage.getItem('userPreferences'));
       evaluateAndRenderExpertSystem(prefs);
-      
+
       // Update chatbot welcome message if initialized
       const chatbotWelcomeMsg = document.getElementById('chatMessages');
       if (chatbotWelcomeMsg) {
@@ -535,7 +535,7 @@ function setupSettingsHandlers(user, expiresAt) {
 
       const prefs = JSON.parse(sessionStorage.getItem('userPreferences'));
       evaluateAndRenderExpertSystem(prefs);
-      
+
       const currentLang = localStorage.getItem('userLanguage') || 'es';
       showToast(DASHBOARD_TRANSLATIONS[currentLang].save_success_toast, 'success');
     });
@@ -549,7 +549,7 @@ function setupSettingsHandlers(user, expiresAt) {
 
       const prefs = JSON.parse(sessionStorage.getItem('userPreferences'));
       evaluateAndRenderExpertSystem(prefs);
-      
+
       const currentLang = localStorage.getItem('userLanguage') || 'es';
       showToast(DASHBOARD_TRANSLATIONS[currentLang].save_success_toast, 'success');
     });
@@ -736,8 +736,8 @@ function evaluateAndRenderExpertSystem(prefs) {
   }
 
   if (deviceStatus) {
-    deviceStatus.textContent = deviceRegistered 
-      ? (currentLang === 'en' ? 'Registered' : 'Registrado') 
+    deviceStatus.textContent = deviceRegistered
+      ? (currentLang === 'en' ? 'Registered' : 'Registrado')
       : (currentLang === 'en' ? 'Unknown' : 'Desconocido');
   }
 
@@ -776,25 +776,25 @@ function evaluateAndRenderExpertSystem(prefs) {
   if (eventList) {
     const userName = sessionStorage.getItem('userName') || 'Usuario';
     const events = [
-      { 
-        label: currentLang === 'en' ? 'Sign In' : 'Inicio de sesión', 
-        value: `${userName} — JWT active`, 
-        icon: '🔑' 
+      {
+        label: currentLang === 'en' ? 'Sign In' : 'Inicio de sesión',
+        value: `${userName} — JWT active`,
+        icon: '🔑'
       },
-      { 
-        label: currentLang === 'en' ? 'Trust Device' : 'Dispositivo seguro', 
-        value: deviceRegistered ? (currentLang === 'en' ? 'Trusted' : 'Registrado') : (currentLang === 'en' ? 'Untrusted' : 'No identificado'), 
-        icon: '📱' 
+      {
+        label: currentLang === 'en' ? 'Trust Device' : 'Dispositivo seguro',
+        value: deviceRegistered ? (currentLang === 'en' ? 'Trusted' : 'Registrado') : (currentLang === 'en' ? 'Untrusted' : 'No identificado'),
+        icon: '📱'
       },
-      { 
-        label: currentLang === 'en' ? 'Strict Security' : 'Seguridad estricta', 
-        value: prefs.strictMode ? (currentLang === 'en' ? 'Enabled' : 'Habilitado') : (currentLang === 'en' ? 'Disabled' : 'Deshabilitado'), 
-        icon: '🛡️' 
+      {
+        label: currentLang === 'en' ? 'Strict Security' : 'Seguridad estricta',
+        value: prefs.strictMode ? (currentLang === 'en' ? 'Enabled' : 'Habilitado') : (currentLang === 'en' ? 'Disabled' : 'Deshabilitado'),
+        icon: '🛡️'
       },
-      { 
-        label: currentLang === 'en' ? 'Lockouts' : 'Bloqueos', 
-        value: lockoutEnd > Date.now() ? (currentLang === 'en' ? 'Active' : 'Bloqueo activo') : (currentLang === 'en' ? 'None' : 'Sin bloqueos'), 
-        icon: '🔒' 
+      {
+        label: currentLang === 'en' ? 'Lockouts' : 'Bloqueos',
+        value: lockoutEnd > Date.now() ? (currentLang === 'en' ? 'Active' : 'Bloqueo activo') : (currentLang === 'en' ? 'None' : 'Sin bloqueos'),
+        icon: '🔒'
       }
     ];
 
@@ -808,10 +808,10 @@ function evaluateAndRenderExpertSystem(prefs) {
 async function savePreferencesApi(prefObj) {
   const token = sessionStorage.getItem('authToken');
   const currentPreferences = JSON.parse(sessionStorage.getItem('userPreferences') || '{}');
-  
+
   const updatedPreferences = { ...currentPreferences, ...prefObj };
   sessionStorage.setItem('userPreferences', JSON.stringify(updatedPreferences));
-  
+
   try {
     const res = await fetch('/api/user/preferences', {
       method: 'PUT',
@@ -821,7 +821,7 @@ async function savePreferencesApi(prefObj) {
       },
       body: JSON.stringify(updatedPreferences)
     });
-    
+
     if (res.ok) {
       evaluateAndRenderExpertSystem(updatedPreferences);
       // Registrar actualización de preferencias en historial
@@ -848,13 +848,13 @@ async function guardarPerfil() {
   const token = sessionStorage.getItem('authToken');
 
   // Capturar valores del formulario
-  const nameInput  = document.getElementById('profileName');
+  const nameInput = document.getElementById('profileName');
   const emailInput = document.getElementById('profileEmail');
-  const submitBtn  = document.getElementById('profileSubmitBtn');
+  const submitBtn = document.getElementById('profileSubmitBtn');
 
   if (!nameInput || !emailInput) return;
 
-  const name  = nameInput.value.trim();
+  const name = nameInput.value.trim();
   const email = emailInput.value.trim();
 
   // ── Validación del lado cliente ──
