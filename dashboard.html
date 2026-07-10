@@ -3,11 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Banco Secure | Sistema Experto</title>
+  <title>BankSecure | Sistema Experto</title>
+  <meta name="description" content="Panel de control del Sistema Experto BankSecure con detección inteligente de fraude, motor de inferencia y asistente IA.">
   <link rel="stylesheet" href="dashboard.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="dashboard-shell">
+  <!-- Loading overlay while validating session -->
+  <div id="sessionLoader" class="session-loader">
+    <div class="session-loader-content">
+      <div class="session-spinner"></div>
+      <p>Validando sesión segura…</p>
+    </div>
+  </div>
+
+  <div class="dashboard-shell" id="dashboardShell" style="display:none;">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">
@@ -41,6 +51,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14" /><path d="M7 7v10l5-3 5 3V7" /></svg>
           Historial
         </a>
+        <a href="#" id="chatToggleBtn" class="chatbot-nav-btn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+          Asistente IA
+          <span class="nav-badge-pulse"></span>
+        </a>
         <a href="#">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" /><path d="M3 12h18" /></svg>
           Configuración
@@ -64,6 +79,10 @@
         <div class="topbar-actions">
           <div class="status-chip">● En línea</div>
           <div class="user-pill" id="userPill">Usuario</div>
+          <button type="button" id="logoutBtn" class="logout-btn" title="Cerrar sesión">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+            Salir
+          </button>
         </div>
       </header>
 
@@ -128,6 +147,10 @@
               <strong id="authStatus">Verificada</strong>
             </div>
             <div>
+              <span>Sesión JWT</span>
+              <strong id="sessionStatus" class="jwt-status">🔒 Protegida</strong>
+            </div>
+            <div>
               <span>Dispositivo</span>
               <strong id="deviceStatus">Registrado</strong>
             </div>
@@ -183,8 +206,47 @@
     </main>
   </div>
 
+  <!-- Chatbot FAB (Floating Action Button) -->
+  <button type="button" id="chatFab" class="chat-fab" title="Abrir Asistente IA">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+    <span class="fab-pulse"></span>
+  </button>
+
+  <!-- Chatbot Panel -->
+  <div id="chatPanel" class="chat-panel">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <div class="chat-avatar">
+          <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7v1H3v-1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z" /><rect x="3" y="17" width="18" height="4" rx="1" /></svg>
+        </div>
+        <div>
+          <strong>Asistente IA</strong>
+          <span>Sistema Experto · En línea</span>
+        </div>
+      </div>
+      <button type="button" id="chatClose" class="chat-close-btn" aria-label="Cerrar chat">✕</button>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <!-- Typing indicator -->
+      <div id="typingIndicator" class="chat-typing">
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Pregunta sobre reglas, riesgo, seguridad…" autocomplete="off" />
+      <button type="button" id="chatSendBtn" class="chat-send-btn" aria-label="Enviar mensaje">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+      </button>
+    </div>
+  </div>
+
   <script src="reglas.js"></script>
   <script src="motorInferencia.js"></script>
   <script src="dashboard.js"></script>
+  <script src="chatbot.js"></script>
 </body>
 </html>
