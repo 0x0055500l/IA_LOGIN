@@ -409,7 +409,7 @@ document.addEventListener("DOMContentLoaded", () => {
       faceVerified = result.faceMatch && result.faceMatch !== false;
       cameraStatus.textContent = faceVerified
         ? "Rostro verificado con éxito."
-        : "El rostro no coincidió con el perfil legítimo.";
+        : "No se pudo verificar el rostro. Intenta nuevamente.";
       cameraStatus.className = faceVerified
         ? "camera-status success"
         : "camera-status error";
