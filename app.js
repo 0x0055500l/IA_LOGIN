@@ -419,6 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
           "Verificación facial necesaria antes de iniciar sesión.";
         formFeedback.className = "form-feedback feedback-warning";
       } else {
+        rostroVerificado = true;
         formFeedback.textContent = "Rostro verificado. Ahora puedes iniciar sesión.";
         formFeedback.className = "form-feedback feedback-success";
       }
