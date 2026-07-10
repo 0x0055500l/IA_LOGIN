@@ -137,11 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const faceVideo = document.getElementById("faceVideo");
   const captureCanvas = document.getElementById("captureCanvas");
   const cameraStatus = document.getElementById("cameraStatus");
-  const riskSummary = document.getElementById("riskSummary");
-  const amountInput = document.getElementById("amount");
-  const transactionHourInput = document.getElementById("transactionHour");
-  const locationInput = document.getElementById("location");
-  const lastLocationInput = document.getElementById("lastLocation");
 
   // Initialize intlTelInput for advanced phone validation
   const iti = window.intlTelInput(phoneInput, {
@@ -390,23 +385,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return captureCanvas.toDataURL("image/png");
   }
 
-  async function evaluateFraudRisk() {
+  async function evaluateFaceVerification() {
     if (!streamActive) {
       await startCamera();
     }
 
     scanFaceBtn.disabled = true;
     scanFaceBtn.textContent = "Analizando…";
-    cameraStatus.textContent = "Procesando rostro y reglas antifraude…";
-    riskSummary.textContent = "Evaluando riesgo de la transacción…";
-    riskSummary.className = "risk-summary";
+    cameraStatus.textContent = "Procesando rostro…";
 
     const payload = {
-      amount: Number(amountInput.value || 0),
-      hour: transactionHourInput.value || "00:00",
-      location: locationInput.value || "",
-      lastLocation: lastLocationInput.value || "",
-      faceVerified: faceVerified,
       faceImage: captureFrame(),
     };
 
@@ -419,20 +407,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await response.json();
       faceVerified = result.faceMatch && result.faceMatch !== false;
-      riskSummary.textContent = `${result.decision} Score de riesgo: ${result.score} (${result.level}).`;
-      riskSummary.className = `risk-summary ${result.level === "alto" ? "warning" : result.level === "medio" ? "warning" : "success"}`;
       cameraStatus.textContent = faceVerified
         ? "Rostro verificado con éxito."
         : "El rostro no coincidió con el perfil legítimo.";
-      if (result.level !== "bajo") {
+      cameraStatus.className = faceVerified
+        ? "camera-status success"
+        : "camera-status error";
+
+      if (!faceVerified) {
         formFeedback.textContent =
-          "Se requiere verificación facial previa a la aprobación.";
+          "Verificación facial necesaria antes de iniciar sesión.";
         formFeedback.className = "form-feedback feedback-warning";
+      } else {
+        formFeedback.textContent = "Rostro verificado. Ahora puedes iniciar sesión.";
+        formFeedback.className = "form-feedback feedback-success";
       }
     } catch (error) {
-      riskSummary.textContent = "No fue posible contactar al motor antifraude.";
-      riskSummary.className = "risk-summary error";
-      cameraStatus.textContent = "Error de conexión con el backend.";
+      faceVerified = false;
+      cameraStatus.textContent = "No fue posible contactar al servicio de verificación.";
+      cameraStatus.className = "camera-status error";
+      formFeedback.textContent = "No se pudo verificar el rostro. Intenta nuevamente.";
+      formFeedback.className = "form-feedback feedback-error";
       console.error(error);
     } finally {
       scanFaceBtn.disabled = false;
@@ -441,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   scanFaceBtn.addEventListener("click", async () => {
-    await evaluateFraudRisk();
+    await evaluateFaceVerification();
   });
 
   // 6. Form Submission — Server-side authentication
@@ -487,6 +482,12 @@ document.addEventListener("DOMContentLoaded", () => {
         phoneError,
         getValidationMsg("phone_region", currentLang),
       );
+      hasError = true;
+    }
+
+    if (!faceVerified) {
+      formFeedback.textContent = "Debes completar la verificación facial antes de iniciar sesión.";
+      formFeedback.className = "form-feedback feedback-warning";
       hasError = true;
     }
 
