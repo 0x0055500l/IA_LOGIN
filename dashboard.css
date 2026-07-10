@@ -31,8 +31,42 @@
 .hist-count { background: rgba(255,255,255,0.03); padding:4px 8px; border-radius:999px; margin-left:8px; font-size:0.8rem; }
 
 .historial-tabs { display:flex; gap:8px; }
-.hist-tab { padding:8px 12px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px solid transparent; cursor:pointer; }
-.hist-tab.active { background: rgba(53,215,255,0.08); border-color: rgba(53,215,255,0.12); }
+.hist-tab {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.hist-tab:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+.hist-tab.active {
+  background: #004c6d;
+  color: #ffffff;
+  border-color: #00608c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .hist-tab {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .hist-tab:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+  }
+  .hist-tab.active {
+    background: #004c6d;
+    color: #ffffff;
+    border-color: #00608c;
+  }
+}
 
 .historial-filters { display:flex; gap:8px; align-items:center; }
 .hist-filter-group { display:flex; flex-direction:column; }
