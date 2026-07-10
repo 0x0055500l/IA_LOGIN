@@ -523,6 +523,15 @@ document.addEventListener("DOMContentLoaded", () => {
         sessionStorage.setItem("userName", result.user.name);
         sessionStorage.setItem("userEmail", result.user.email);
 
+        // Registrar acción de login en el historial (intento informativo)
+        try {
+          await fetch('/api/logs/action', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${result.token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accion: 'login', resultado: 'exito', detalles: { ip: '', method: 'password' } })
+          });
+        } catch (e) { console.debug('[app] No se registró el login en historial:', e); }
+
         // Small delay so user sees the success message
         setTimeout(() => {
           window.location.href = "dashboard.html";

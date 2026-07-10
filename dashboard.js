@@ -384,6 +384,18 @@ function initializeDashboard(user, expiresAt) {
       const currentLang = localStorage.getItem('userLanguage') || 'es';
       logoutBtn.querySelector('span').textContent = currentLang === 'en' ? 'Logging out...' : 'Cerrando...';
 
+      // Intentar registrar logout en historial antes de invalidar token
+      try {
+        const tokenNow = sessionStorage.getItem('authToken');
+        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+          try { window.registrarAccion('logout', 'exito', { user: sessionStorage.getItem('userEmail') }); } catch(_) {}
+        } else if (tokenNow) {
+          await fetch('/api/logs/action', { method: 'POST', headers: { 'Authorization': `Bearer ${tokenNow}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'logout', resultado: 'exito', detalles: {} }) });
+        }
+      } catch (e) {
+        console.warn('No se pudo registrar logout en historial:', e);
+      }
+
       try {
         await fetch('/api/logout', {
           method: 'POST',
@@ -583,6 +595,13 @@ function setupSettingsHandlers(user, expiresAt) {
           document.getElementById('currentPassword').value = '';
           document.getElementById('newPassword').value = '';
           showToast(DASHBOARD_TRANSLATIONS[currentLang].pass_success_toast, 'success');
+          try {
+            if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+              window.registrarAccion('password_cambio', 'exito', { user: sessionStorage.getItem('userEmail') });
+            } else if (token) {
+              await fetch('/api/logs/action', { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'password_cambio', resultado: 'exito', detalles: { user: sessionStorage.getItem('userEmail') } }) });
+            }
+          } catch (e) { console.debug('[dashboard] no se pudo registrar cambio de contraseña', e); }
         } else {
           showToast(data.message || currentLang === 'en' ? "Current password mismatch." : "Contraseña actual incorrecta.", 'error');
         }
@@ -788,6 +807,16 @@ async function savePreferencesApi(prefObj) {
     
     if (res.ok) {
       evaluateAndRenderExpertSystem(updatedPreferences);
+      // Registrar actualización de preferencias en historial
+      try {
+        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+          window.registrarAccion('preferencias_actualizadas', 'exito', updatedPreferences);
+        } else if (token) {
+          await fetch('/api/logs/action', { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'preferencias_actualizadas', resultado: 'exito', detalles: updatedPreferences }) });
+        }
+      } catch (e) {
+        console.debug('[dashboard] no se pudo registrar preferencias en historial', e);
+      }
     }
   } catch (e) {
     console.error('Error synchronizing preferences to API:', e);
@@ -879,6 +908,13 @@ async function guardarPerfil() {
 
       showProfileFeedback(successMsg, 'success');
       showToast(DASHBOARD_TRANSLATIONS[currentLang]?.profile_success_toast || successMsg, 'success');
+      try {
+        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+          window.registrarAccion('perfil_actualizado', 'exito', { name: data.user.name, email: data.user.email });
+        } else if (token) {
+          await fetch('/api/logs/action', { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'perfil_actualizado', resultado: 'exito', detalles: { name: data.user.name, email: data.user.email } }) });
+        }
+      } catch (e) { console.debug('[dashboard] no se pudo registrar perfil en historial', e); }
 
     } else {
       // ── Error de validación del servidor (status 400) ──
