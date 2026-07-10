@@ -1391,10 +1391,15 @@ function setupInteractiveBanking(user) {
   const cardNumber = document.getElementById('cardNumber');
   const cardExpiry = document.getElementById('cardExpiry');
   const cardCvv = document.getElementById('cardCvv');
-  const btnEvaluateFace = document.getElementById('btnEvaluateFace');
-  const faceScannerView = document.getElementById('faceScannerView');
-  const scannerStatusText = document.getElementById('scannerStatusText');
   const btnValidateAccess = document.getElementById('btnValidateAccess');
+  const btnBlockCard = document.getElementById('btnBlockCard');
+  const btnReactivateCard = document.getElementById('btnReactivateCard');
+  const btnReviewAlerts = document.getElementById('btnReviewAlerts');
+
+  const bankingRiskAlert = document.getElementById('bankingRiskAlert');
+  const btnEvaluateFace = bankingRiskAlert?.querySelector('#btnEvaluateFace') ?? document.getElementById('btnEvaluateFace');
+  const faceScannerView = bankingRiskAlert?.querySelector('#faceScannerView') ?? document.getElementById('faceScannerView');
+  const scannerStatusText = bankingRiskAlert?.querySelector('#scannerStatusText') ?? document.getElementById('scannerStatusText');
   const btnBlockCard = document.getElementById('btnBlockCard');
   const btnReactivateCard = document.getElementById('btnReactivateCard');
   const btnReviewAlerts = document.getElementById('btnReviewAlerts');
@@ -1522,7 +1527,7 @@ function setupInteractiveBanking(user) {
     if (window.dashboardCameraActive) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      const video = document.getElementById('faceVideo');
+      const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
       if (video) {
         video.srcObject = stream;
         await video.play();
@@ -1535,7 +1540,7 @@ function setupInteractiveBanking(user) {
 
   // Capture a frame from the video (used for facial verification)
   function captureFrame() {
-    const video = document.getElementById('faceVideo');
+    const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
     const canvas = document.getElementById('captureCanvas');
     if (!video || !canvas) return null;
     const ctx = canvas.getContext('2d');
@@ -1682,7 +1687,7 @@ function setupInteractiveBanking(user) {
         }
 
         await startCamera();
-        const video = document.getElementById('faceVideo');
+        const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
         if (video) {
           video.style.display = 'block';
         }
@@ -1764,7 +1769,7 @@ function setupInteractiveBanking(user) {
         addAuditLog('Error en validación facial', 'val-danger');
         showToast('✗ Validación facial fallida, acceso denegado', 'error');
       } finally {
-        const video = document.getElementById('faceVideo');
+        const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
         if (video) {
           if (!faceValidated) {
             video.style.display = 'block';
