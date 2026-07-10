@@ -1236,7 +1236,7 @@ function setupInteractiveBanking(user) {
           }
           if (scannerStatusText) scannerStatusText.textContent = '✓ Rostro verificado';
           addAuditLog('Biometría facial: Rostro VALIDADO correctamente.', 'val-success');
-          showToast('Biometría facial verificada', 'success');
+          showToast('Validación facial exitosa', 'success');
           // Update scanner view to indicate success
           if (faceScannerView) faceScannerView.className = 'face-scanner-view scanned';
         } else {
@@ -1245,8 +1245,8 @@ function setupInteractiveBanking(user) {
             statusFaceVal.className = 'status-value val-danger';
           }
           if (scannerStatusText) scannerStatusText.textContent = '✗ Rostro no verificado';
-          addAuditLog('Biometría facial: Rostro NO VALIDADO.', 'val-danger');
-          showToast('Biometría facial falló: intente nuevamente', 'error');
+          addAuditLog('Validación facial fallida', 'val-danger');
+          showToast('Validación facial fallida, acceso denegado', 'error');
           // Keep scanner view in scanning state to allow retry
           if (faceScannerView) faceScannerView.className = 'face-scanner-view scanning';
         }
@@ -1290,13 +1290,6 @@ function setupInteractiveBanking(user) {
       // Validate device status
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
       if (!isDeviceTrusted) {
-        if (bankingRiskAlert) bankingRiskAlert.style.display = 'flex';
-        showToast('Acceso Denegado: Dispositivo no seguro.', 'error');
-        addAuditLog('ALERTA: Transacción Bloqueada (Dispositivo No Confiable)', 'val-danger');
-        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-          window.registrarAccion('acceso_bancario_bloqueado', 'error', { razon: 'Dispositivo no confiable' });
-        }
-        return;
       }
 
       // Validate Card Details
@@ -1394,7 +1387,7 @@ function setupInteractiveBanking(user) {
 
   // Simulated Purchases
   if (btnSimulatePurchase) {
-    btnSimulatePurchase.addEventListener('click', () => {
+    btnSimulatePurchase.addEventListener('click', async () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
@@ -1405,11 +1398,22 @@ function setupInteractiveBanking(user) {
         return;
       }
       if (!isDeviceTrusted) {
-        showToast('Transacción denegada: Dispositivo inseguro.', 'error');
-        addAuditLog('Compra denegada: Dispositivo inseguro.', 'val-danger');
-        saveTransaction('Simulación Compra', amountVal, 'Denegado');
-        return;
-      }
+          // Requerir autenticación biométrica obligatoria para dispositivos no confiables
+          showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
+          addAuditLog('ALERTA: Dispositivo no confiable, autenticación biométrica requerida', 'val-danger');
+          // Iniciar flujo de validación facial
+          btnEvaluateFace.disabled = true;
+          await evaluateFace();
+          if (!faceValidated) {
+            showToast('Validación facial fallida, acceso denegado', 'error');
+            addAuditLog('Acceso denegado por falla en validación facial', 'val-danger');
+            btnEvaluateFace.disabled = false;
+            return;
+          }
+          // Validación facial exitosa
+          showToast('Validación facial exitosa', 'success');
+          addAuditLog('Validación facial exitosa, dispositivo ahora confiable', 'val-success');
+        }
       if (!faceValidated) {
         showToast('Transacción denegada: Falta biometría facial.', 'error');
         addAuditLog('Compra denegada: Falta biometría facial.', 'val-danger');
@@ -1445,7 +1449,7 @@ function setupInteractiveBanking(user) {
 
   // Simulated Transfers
   if (btnSimulateTransfer) {
-    btnSimulateTransfer.addEventListener('click', () => {
+    btnSimulateTransfer.addEventListener('click', async () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
@@ -1456,11 +1460,22 @@ function setupInteractiveBanking(user) {
         return;
       }
       if (!isDeviceTrusted) {
-        showToast('Transferencia denegada: Dispositivo inseguro.', 'error');
-        addAuditLog('Transferencia denegada: Dispositivo inseguro.', 'val-danger');
-        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-        return;
-      }
+          // Requerir autenticación biométrica obligatoria para dispositivos no confiables
+          showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
+          addAuditLog('ALERTA: Dispositivo no confiable, autenticación biométrica requerida', 'val-danger');
+          // Iniciar flujo de validación facial
+          btnEvaluateFace.disabled = true;
+          await evaluateFace();
+          if (!faceValidated) {
+            showToast('Validación facial fallida, acceso denegado', 'error');
+            addAuditLog('Acceso denegado por falla en validación facial', 'val-danger');
+            btnEvaluateFace.disabled = false;
+            return;
+          }
+          // Validación facial exitosa
+          showToast('Validación facial exitosa', 'success');
+          addAuditLog('Validación facial exitosa, dispositivo ahora confiable', 'val-success');
+        }
       if (!faceValidated) {
         showToast('Transferencia denegada: Falta biometría facial.', 'error');
         addAuditLog('Transferencia denegada: Falta biometría facial.', 'val-danger');
