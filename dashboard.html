@@ -142,6 +142,15 @@
                 <strong>Dispositivo No Registrado o No Confiable</strong>
                 <p>Las transacciones han sido bloqueadas. Por favor, registre este dispositivo desde la sección de Configuración para continuar.</p>
               </div>
+              <div class="face-scanner-container">
+                <div class="face-scanner-view" id="faceScannerView" style="position: relative;">
+                  <video id="faceVideo" autoplay playsinline style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0; z-index:1; border-radius:12px;"></video>
+                  <div class="scanner-laser" style="z-index:3;"></div>
+                  <div class="scanner-face-icon" style="z-index:2;">👤</div>
+                  <div class="scanner-status-text" id="scannerStatusText" style="z-index:2;">Listo para escanear</div>
+                </div>
+                <button type="button" id="btnEvaluateFace" class="banking-btn btn-secondary">Evaluar Rostro</button>
+              </div>
             </div>
 
             <!-- Fila superior: Monto Disponible & Estado de Seguridad -->
@@ -221,19 +230,7 @@
               <!-- Bloque 2: Autenticación Biométrica (Rostro) -->
               <div class="banking-block face-auth-block">
                 <h4 class="block-title">👤 Validación Facial (Biométrica)</h4>
-                	<div class="face-scanner-container">
-	  <div class="face-scanner-view" id="faceScannerView" style="position: relative;">
-	    <video id="faceVideo" autoplay playsinline style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; inset:0; z-index:1; border-radius:12px;"></video>
-	    <!-- Overlay de escaneo -->
-	    <div class="scanner-laser" style="z-index:3;"></div>
-	    <div class="scanner-face-icon" style="z-index:2;">👤</div>
-	    <div class="scanner-status-text" id="scannerStatusText" style="z-index:2;">Listo para escanear</div>
-	  </div>
-	  <button type="button" id="btnEvaluateFace" class="banking-btn btn-secondary">Evaluar Rostro</button>
-	</div>
-              </div>
-            </div>
-
+                <p>El escaneo facial se activa en caso de que el dispositivo aparezca como no confiable.</p>
             <!-- Simulador de Operaciones (Para añadir transacciones al historial) -->
             <div class="banking-block operation-simulator-block" style="margin-bottom: 16px;">
               <h4 class="block-title">⚡ Simulador de Transacciones Rápidas</h4>

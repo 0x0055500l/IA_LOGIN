@@ -1510,7 +1510,7 @@ function setupInteractiveBanking(user) {
     } else {
       statusDeviceVal.textContent = '✗ No Confiable';
       statusDeviceVal.className = 'status-value val-danger';
-      if (bankingRiskAlert) bankingRiskAlert.style.display = 'flex';
+      if (bankingRiskAlert) bankingRiskAlert.style.display = faceValidated ? 'none' : 'flex';
     }
     updateBalanceAndSecurityUI();
   }
@@ -1748,6 +1748,7 @@ function setupInteractiveBanking(user) {
           setFacialStatus('✓ Validación facial exitosa', 'success');
           addAuditLog('Biometría facial: Rostro VALIDADO correctamente.', 'val-success');
           showToast('✓ Validación facial exitosa', 'success');
+          if (bankingRiskAlert) bankingRiskAlert.style.display = 'none';
         } else {
           attemptResultLabel = 'fallo';
           attemptResultTone = 'danger';
@@ -1764,7 +1765,13 @@ function setupInteractiveBanking(user) {
         showToast('✗ Validación facial fallida, acceso denegado', 'error');
       } finally {
         const video = document.getElementById('faceVideo');
-        if (video) video.style.display = 'none';
+        if (video) {
+          if (!faceValidated) {
+            video.style.display = 'block';
+          } else {
+            video.style.display = 'none';
+          }
+        }
         btnEvaluateFace.disabled = false;
 
         recordFacialAttempt(attemptResultLabel, attemptResultTone, {
