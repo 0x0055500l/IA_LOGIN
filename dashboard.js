@@ -436,48 +436,11 @@ function setupSettingsHandlers(user, expiresAt) {
     showToast(DASHBOARD_TRANSLATIONS[currentLang].save_success_toast, 'success');
   };
 
-  // Profile Form update
+  // Profile Form update — guardarPerfil()
   if (profileForm) {
     profileForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const currentLang = localStorage.getItem('userLanguage') || 'es';
-      const name = document.getElementById('profileName').value.trim();
-      const email = document.getElementById('profileEmail').value.trim();
-
-      if (!name) {
-        showToast(currentLang === 'en' ? "Name is required." : "El nombre es requerido.", 'error');
-        return;
-      }
-      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/.test(email)) {
-        showToast(currentLang === 'en' ? "Invalid email format." : "Formato de correo electrónico inválido.", 'error');
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/user/profile', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ name, email })
-        });
-
-        const data = await res.json();
-        if (res.ok && data.success) {
-          // Update credentials in sessionStorage
-          sessionStorage.setItem('authToken', data.token);
-          sessionStorage.setItem('userName', data.user.name);
-          sessionStorage.setItem('userEmail', data.user.email);
-          
-          document.getElementById('userPill').textContent = data.user.name;
-          showToast(DASHBOARD_TRANSLATIONS[currentLang].profile_success_toast, 'success');
-        } else {
-          showToast(data.message || DASHBOARD_TRANSLATIONS[currentLang].save_error_toast, 'error');
-        }
-      } catch (err) {
-        showToast(DASHBOARD_TRANSLATIONS[currentLang].save_error_toast, 'error');
-      }
+      await guardarPerfil();
     });
   }
 
@@ -799,3 +762,149 @@ async function savePreferencesApi(prefObj) {
     console.error('Error synchronizing preferences to API:', e);
   }
 }
+
+// ─── guardarPerfil() ─── Función global para guardar cambios del perfil ───
+// Captura los valores del formulario, valida, envía al servidor con JWT y
+// muestra el resultado visual tanto en el feedback inline como en el toast.
+async function guardarPerfil() {
+  const currentLang = localStorage.getItem('userLanguage') || 'es';
+  const token = sessionStorage.getItem('authToken');
+
+  // Capturar valores del formulario
+  const nameInput  = document.getElementById('profileName');
+  const emailInput = document.getElementById('profileEmail');
+  const submitBtn  = document.getElementById('profileSubmitBtn');
+
+  if (!nameInput || !emailInput) return;
+
+  const name  = nameInput.value.trim();
+  const email = emailInput.value.trim();
+
+  // ── Validación del lado cliente ──
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
+
+  if (!name) {
+    showProfileFeedback(
+      currentLang === 'en' ? 'Name is required.' : 'El nombre es requerido.',
+      'error'
+    );
+    return;
+  }
+  if (!emailRegex.test(email)) {
+    showProfileFeedback(
+      currentLang === 'en' ? 'Invalid email format.' : 'Formato de correo electrónico inválido.',
+      'error'
+    );
+    return;
+  }
+  if (!token) {
+    showProfileFeedback(
+      currentLang === 'en' ? 'Session expired. Please log in again.' : 'Sesión expirada. Inicia sesión de nuevo.',
+      'error'
+    );
+    return;
+  }
+
+  // ── Estado de carga en el botón ──
+  const originalBtnText = submitBtn ? submitBtn.textContent : 'Guardar cambios';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = currentLang === 'en' ? 'Saving…' : 'Guardando…';
+    submitBtn.style.opacity = '0.7';
+  }
+
+  // Ocultar feedback anterior
+  showProfileFeedback('', 'hidden');
+
+  try {
+    // ── Llamada al endpoint /api/updateProfile con autenticación JWT ──
+    const response = await fetch('/api/updateProfile', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, email }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // ── Éxito: actualizar token JWT y datos en sesión ──
+      if (data.token) {
+        sessionStorage.setItem('authToken', data.token);
+      }
+      sessionStorage.setItem('userName', data.user.name);
+      sessionStorage.setItem('userEmail', data.user.email);
+
+      // Actualizar el pill de usuario en la topbar
+      const userPill = document.getElementById('userPill');
+      if (userPill) userPill.textContent = data.user.name;
+
+      // ── Mensaje visual de éxito ──
+      const successMsg = currentLang === 'en'
+        ? '✓ Changes saved successfully!'
+        : '✓ Cambios guardados correctamente.';
+
+      showProfileFeedback(successMsg, 'success');
+      showToast(DASHBOARD_TRANSLATIONS[currentLang]?.profile_success_toast || successMsg, 'success');
+
+    } else {
+      // ── Error de validación del servidor (status 400) ──
+      const errMsg = data.message
+        || (currentLang === 'en' ? 'Error saving changes.' : 'Error al guardar los cambios.');
+      showProfileFeedback(`✗ ${errMsg}`, 'error');
+      showToast(errMsg, 'error');
+    }
+
+  } catch (networkError) {
+    // ── Error de red o servidor no disponible ──
+    const netMsg = currentLang === 'en'
+      ? '✗ Connection error. Please try again.'
+      : '✗ Error de conexión. Inténtalo de nuevo.';
+    showProfileFeedback(netMsg, 'error');
+    showToast(netMsg, 'error');
+    console.error('[guardarPerfil] Error de red:', networkError);
+
+  } finally {
+    // ── Restaurar botón siempre ──
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+      submitBtn.style.opacity = '';
+    }
+  }
+}
+
+// ─── showProfileFeedback() ─── Mensaje visual inline en el formulario de perfil ───
+// type: 'success' | 'error' | 'hidden'
+function showProfileFeedback(message, type) {
+  const feedbackEl = document.getElementById('profileFeedback');
+  if (!feedbackEl) return;
+
+  if (type === 'hidden' || !message) {
+    feedbackEl.style.display = 'none';
+    feedbackEl.textContent = '';
+    feedbackEl.className = 'profile-feedback';
+    return;
+  }
+
+  feedbackEl.textContent = message;
+  feedbackEl.className = `profile-feedback profile-feedback--${type}`;
+  feedbackEl.style.display = 'block';
+
+  // Auto-ocultar el mensaje de éxito después de 5 segundos
+  if (type === 'success') {
+    setTimeout(() => {
+      feedbackEl.classList.add('profile-feedback--fade');
+      setTimeout(() => {
+        feedbackEl.style.display = 'none';
+        feedbackEl.className = 'profile-feedback';
+      }, 400);
+    }, 5000);
+  }
+}
+
+// Exponer globalmente para uso externo (app.js u otros módulos)
+window.guardarPerfil = guardarPerfil;
+window.showProfileFeedback = showProfileFeedback;

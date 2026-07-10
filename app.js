@@ -817,6 +817,164 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+/**
+ * ─── guardarPerfil() ─────────────────────────────────────────────────────────
+ * Función global del sistema BankSecure para guardar los cambios del perfil
+ * desde el módulo de Configuraciones.
+ *
+ * Flujo:
+ *  1. Captura nombre y correo del formulario #profileSettingsForm
+ *  2. Valida el formato del correo con regex
+ *  3. Envía los datos al servidor mediante fetch → POST /api/updateProfile
+ *  4. Incluye el token JWT en el header Authorization: Bearer <token>
+ *  5. Muestra mensaje visual según la respuesta del servidor:
+ *     - Status 200: "✓ Cambios guardados correctamente."
+ *     - Status 400: "✗ <mensaje de error del servidor>"
+ *     - Error de red: "✗ Error de conexión."
+ *
+ * Esta función es invocada por el formulario en dashboard.js a través del
+ * handler del evento 'submit'. También puede llamarse directamente:
+ *   guardarPerfil();
+ *
+ * @returns {Promise<void>}
+ */
+async function guardarPerfil() {
+  // Si estamos en el dashboard, delegar a la implementación completa
+  if (typeof window.guardarPerfil === 'function' && window.guardarPerfil !== guardarPerfil) {
+    return window.guardarPerfil();
+  }
+
+  const currentLang = localStorage.getItem('userLanguage') || 'es';
+  const token = sessionStorage.getItem('authToken');
+
+  // Capturar valores del formulario de configuración
+  const nameInput  = document.getElementById('profileName');
+  const emailInput = document.getElementById('profileEmail');
+
+  if (!nameInput || !emailInput) {
+    console.warn('[guardarPerfil] Formulario de perfil no encontrado en el DOM.');
+    return;
+  }
+
+  const name  = nameInput.value.trim();
+  const email = emailInput.value.trim();
+
+  // ── Validación cliente ──
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
+
+  if (!name) {
+    mostrarMensajePerfil(
+      currentLang === 'en' ? '✗ Name is required.' : '✗ El nombre es requerido.',
+      false
+    );
+    return;
+  }
+
+  if (!emailRegex.test(email)) {
+    mostrarMensajePerfil(
+      currentLang === 'en' ? '✗ Invalid email format.' : '✗ Formato de correo electrónico inválido.',
+      false
+    );
+    return;
+  }
+
+  if (!token) {
+    mostrarMensajePerfil(
+      currentLang === 'en' ? '✗ Session expired. Please log in again.' : '✗ Sesión expirada. Inicia sesión de nuevo.',
+      false
+    );
+    return;
+  }
+
+  try {
+    // ── Petición al servidor con autenticación JWT ──
+    const response = await fetch('/api/updateProfile', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, email }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Status 200: éxito
+      if (data.token) sessionStorage.setItem('authToken', data.token);
+      sessionStorage.setItem('userName', data.user.name);
+      sessionStorage.setItem('userEmail', data.user.email);
+
+      mostrarMensajePerfil(
+        currentLang === 'en' ? '✓ Changes saved successfully!' : '✓ Cambios guardados correctamente.',
+        true
+      );
+    } else {
+      // Status 400: error de validación
+      const errMsg = data.message
+        || (currentLang === 'en' ? 'Error saving changes.' : 'Error al guardar los cambios.');
+      mostrarMensajePerfil(`✗ ${errMsg}`, false);
+    }
+  } catch (err) {
+    // Error de red
+    mostrarMensajePerfil(
+      currentLang === 'en' ? '✗ Connection error. Please try again.' : '✗ Error de conexión. Inténtalo de nuevo.',
+      false
+    );
+    console.error('[guardarPerfil] Error de red:', err);
+  }
+}
+
+/**
+ * mostrarMensajePerfil() — muestra un mensaje visual en el formulario de perfil.
+ * @param {string} mensaje  - Texto a mostrar
+ * @param {boolean} exito   - true = éxito (verde), false = error (rojo)
+ */
+function mostrarMensajePerfil(mensaje, exito) {
+  // Intentar usar el elemento dedicado si existe (dashboard)
+  const feedbackEl = document.getElementById('profileFeedback');
+  if (feedbackEl && typeof window.showProfileFeedback === 'function') {
+    window.showProfileFeedback(mensaje, exito ? 'success' : 'error');
+    return;
+  }
+
+  // Fallback: crear o reusar un elemento temporal
+  let el = document.getElementById('profileFeedbackFallback');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'profileFeedbackFallback';
+    el.style.cssText = `
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin: 10px 0;
+      border: 1px solid;
+      transition: opacity 0.3s ease;
+    `;
+    const form = document.getElementById('profileSettingsForm');
+    if (form) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) form.insertBefore(el, btn);
+      else form.appendChild(el);
+    }
+  }
+
+  el.textContent = mensaje;
+  el.style.opacity = '1';
+
+  if (exito) {
+    el.style.background = 'rgba(20, 195, 142, 0.1)';
+    el.style.borderColor = '#14c38e';
+    el.style.color = '#14c38e';
+    setTimeout(() => { el.style.opacity = '0'; }, 5000);
+  } else {
+    el.style.background = 'rgba(255, 93, 122, 0.1)';
+    el.style.borderColor = '#ff5d7a';
+    el.style.color = '#ff5d7a';
+  }
+}
+
 // Advanced Anti-DevTools Logic
 function preventDevTools() {
   let devtoolsOpen = false;

@@ -285,6 +285,77 @@ app.put('/api/user/profile', authenticateToken, (req, res) => {
   });
 });
 
+// ─── /api/updateProfile alias (maps to /api/user/profile) ───
+// Endpoint requerido: recibe name + email, valida, actualiza y devuelve JSON estándar
+app.post('/api/updateProfile', authenticateToken, (req, res) => {
+  const { name, email } = req.body;
+
+  // Validación del nombre
+  if (!name || String(name).trim().length === 0) {
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      message: 'El nombre es requerido.',
+    });
+  }
+
+  // Validación del formato de correo electrónico
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
+  if (!email || !emailRegex.test(email)) {
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      message: 'Formato de correo electrónico inválido.',
+    });
+  }
+
+  const user = USERS.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({
+      status: 404,
+      success: false,
+      message: 'Usuario no encontrado.',
+    });
+  }
+
+  // Verificar si el correo ya está en uso por otro usuario
+  const emailTaken = USERS.some(
+    (u) => u.id !== user.id && u.email.toLowerCase() === email.toLowerCase()
+  );
+  if (emailTaken) {
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      message: 'El correo electrónico ya está en uso por otra cuenta.',
+    });
+  }
+
+  // Actualizar datos del usuario en la "base de datos"
+  user.name = String(name).trim();
+  user.email = email.toLowerCase().trim();
+
+  // Emitir nuevo JWT con información actualizada
+  const tokenPayload = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  };
+
+  const newToken = jwt.sign(tokenPayload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRATION,
+    issuer: 'banksecure-expert-system',
+  });
+
+  return res.status(200).json({
+    status: 200,
+    success: true,
+    message: 'Perfil actualizado correctamente.',
+    token: newToken,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+  });
+});
+
 // Update preferences: Language, Theme, 2FA, Strict Mode
 app.put('/api/user/preferences', authenticateToken, (req, res) => {
   const { language, theme, twoFactor, strictMode } = req.body;

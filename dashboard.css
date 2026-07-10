@@ -1346,3 +1346,55 @@ body.theme-light .settings-group select {
   color: #0f172a;
 }
 
+/* ─── Profile Feedback Inline Message ─── */
+.profile-feedback {
+  display: none;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  border: 1px solid transparent;
+  animation: profileFeedbackIn 0.3s ease;
+  line-height: 1.5;
+}
+
+@keyframes profileFeedbackIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes profileFeedbackFade {
+  from { opacity: 1; }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+.profile-feedback--success {
+  background: rgba(20, 195, 142, 0.12);
+  border-color: var(--success, #14c38e);
+  color: var(--success, #14c38e);
+}
+
+.profile-feedback--error {
+  background: rgba(255, 93, 122, 0.12);
+  border-color: var(--danger, #ff5d7a);
+  color: var(--danger, #ff5d7a);
+}
+
+.profile-feedback--fade {
+  animation: profileFeedbackFade 0.4s ease forwards;
+}
+
+/* Light theme override for profile feedback */
+body.theme-light .profile-feedback--success {
+  background: rgba(20, 195, 142, 0.08);
+}
+body.theme-light .profile-feedback--error {
+  background: rgba(255, 93, 122, 0.08);
+}
