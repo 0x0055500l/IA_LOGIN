@@ -33,74 +33,7 @@
           <p data-i18n="brand_subtitle">Fraude & Riesgo</p>
         </div>
       </div>
-      <!-- Vista Historial (insercion por módulo) -->
-      <div id="historialView" class="view-container" style="display: none;">
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Historial</p>
-              <h3>Registros del sistema y del Asistente IA</h3>
-            </div>
-            <div class="filter-row">
-              <select id="filterTipo">
-                <option value="all">Todos</option>
-                <option value="sistema">Sistema</option>
-                <option value="chat">Asistente IA</option>
-              </select>
-              <input type="text" id="filterUsuario" placeholder="Usuario (email)" />
-              <input type="date" id="filterFecha" />
-              <input type="text" id="filterQuery" placeholder="Buscar texto..." />
-              <button id="filterApplyBtn" class="settings-submit-btn">Filtrar</button>
-            </div>
-            </div>
-
-          <div style="margin-top:12px;">
-            <div class="table-actions">
-              <button id="deleteSelectedBtn" class="settings-submit-btn" style="background:var(--danger);border:none;">Eliminar seleccionados</button>
-              <button id="deleteAllBtn" class="settings-submit-btn" style="background:var(--warning);border:none;">Eliminar todo (avanzado)</button>
-            </div>
-
-            <table class="logs-table" id="logsTable">
-              <thead>
-                <tr>
-                  <th><input type="checkbox" id="selectAllLogs"/></th>
-                  <th>ID</th>
-                  <th>Tipo</th>
-                  <th>Usuario</th>
-                  <th>Acción / Consulta</th>
-                  <th>Resultado</th>
-                  <th>Fecha</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="logsTableBody"></tbody>
-            </table>
-          </div>
-
-          <!-- Modal Confirmación eliminación -->
-          <div id="confirmDeleteModal" class="modal hidden">
-            <div class="modal-content">
-              <h4>Confirmar eliminación</h4>
-              <div id="modalStep1">
-                <p>Esta operación es irreversible. Debes confirmar en 3 pasos para proceder.</p>
-                <button id="modalStartBtn" class="settings-submit-btn">Iniciar eliminación</button>
-              </div>
-              <div id="modalStep2" class="hidden">
-                <p>Escribe <strong>CONFIRMAR</strong> para continuar:</p>
-                <input type="text" id="modalConfirmText" placeholder="CONFIRMAR" />
-                <button id="modalVerifyBtn" class="settings-submit-btn">Verificar</button>
-              </div>
-              <div id="modalStep3" class="hidden">
-                <p>Introduce el token de seguridad que aparece:</p>
-                <div id="generatedToken" style="font-weight:700;letter-spacing:4px;margin-bottom:8px;"></div>
-                <input type="text" id="modalTokenInput" placeholder="Token" />
-                <button id="modalFinalDeleteBtn" class="settings-submit-btn" style="background:var(--danger);border:none;">Eliminar</button>
-              </div>
-              <button id="modalCloseBtn" class="settings-submit-btn" style="margin-top:10px;background:transparent;border:1px solid var(--border);">Cerrar</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Historial moved to main content -->
 
       <nav class="sidebar-nav">
         <a class="active" href="#" id="navInicio" data-i18n="nav_inicio">
@@ -274,6 +207,9 @@
           </article>
         </section>
       </div>
+
+      <!-- Historial View (inserción del módulo) -->
+      <div id="historialView" class="view-container" style="display: none;"></div>
 
       <!-- Vista de Configuración (oculta por defecto) -->
       <div id="settingsView" class="view-container" style="display: none;">
