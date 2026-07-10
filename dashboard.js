@@ -1548,7 +1548,7 @@ function setupInteractiveBanking(user) {
       const cards = getCards();
       const status = cards.length > 0 ? cards[0].status : 'Pendiente';
       
-      cardBlocked = (status === 'Bloqueada');
+      cardBlocked = (status === 'Bloqueada' || status === 'Pendiente');
 
       if (statusCardVal) {
         if (status === 'Activa') {
@@ -1561,6 +1561,10 @@ function setupInteractiveBanking(user) {
           statusCardVal.textContent = 'Pendiente';
           statusCardVal.className = 'status-value val-pending';
         }
+      }
+      if ((status === 'Bloqueada' || status === 'Pendiente') && statusFaceVal) {
+        statusFaceVal.textContent = 'Validación facial no disponible: tarjeta bloqueada';
+        statusFaceVal.className = 'status-value val-pending';
       }
       updateBalanceAndSecurityUI();
     } catch (e) {
@@ -1613,29 +1617,72 @@ function setupInteractiveBanking(user) {
 
   // Real facial validation using backend API — mismo modelo y flujo que el login
   if (btnEvaluateFace && faceScannerView) {
-
-    // Determina si la tarjeta está en estado "Pendiente" (no bloqueada explícitamente, pero sin validar)
-    function _cardIsPending() {
-      if (!statusCardVal) return false;
-      const txt = statusCardVal.textContent.trim();
-      return txt === 'Pendiente' || txt === 'Pending';
+    function setFacialStatus(message, tone = 'pending') {
+      if (statusFaceVal) {
+        statusFaceVal.textContent = message;
+        statusFaceVal.className = tone === 'success'
+          ? 'status-value val-success'
+          : tone === 'danger'
+            ? 'status-value val-danger'
+            : 'status-value val-pending';
+      }
+      if (scannerStatusText) scannerStatusText.textContent = message;
+      if (faceScannerView) {
+        faceScannerView.className = `face-scanner-view ${tone === 'success' ? 'scanned' : tone === 'danger' ? 'scanning' : ''}`.trim();
+      }
     }
 
-    // Función de validación facial — reutiliza faceVideo/captureCanvas igual que el login
+    function recordFacialAttempt(resultLabel, resultTone, details = {}) {
+      const now = new Date();
+      const fecha = now.toISOString();
+      const hora = now.toLocaleTimeString('es-HN');
+      const dia = now.toLocaleDateString('es-HN');
+
+      addAuditLog(`📸 Verificación facial [${dia} ${hora}] — Resultado: ${resultLabel}`, resultTone === 'success' ? 'val-success' : resultTone === 'warning' ? 'val-pending' : 'val-danger');
+
+      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+        window.registrarAccion(
+          'validacion_facial_fraude',
+          resultTone === 'success' ? 'exito' : (resultTone === 'warning' ? 'advertencia' : 'error'),
+          {
+            fecha,
+            hora,
+            resultado: resultLabel,
+            usuario: user ? user.email : 'desconocido',
+            modulo: 'fraud_face_validation',
+            ...details,
+          }
+        );
+      }
+    }
+
     async function evaluateFace() {
       const attemptTime = new Date();
-      let attemptResult = 'error';
+      let attemptResultLabel = 'fallo';
+      let attemptResultTone = 'danger';
+      let similarity = 0;
 
       try {
-        // Inicializar cámara con el mismo id (faceVideo) que el login
+        if (!isCardActive() || cardBlocked) {
+          const msg = 'Validación facial no disponible: tarjeta bloqueada';
+          setFacialStatus(msg, 'warning');
+          addAuditLog(`⚠️ ${msg}`, 'val-pending');
+          showToast(msg, 'warning');
+          faceValidated = false;
+          attemptResultLabel = 'no disponible';
+          attemptResultTone = 'warning';
+          recordFacialAttempt(attemptResultLabel, attemptResultTone, { motivo: 'tarjeta_bloqueada_o_pendiente' });
+          return;
+        }
+
         await startCamera();
         const video = document.getElementById('faceVideo');
-        if (video) video.style.display = 'block';
-        faceScannerView.className = 'face-scanner-view scanning';
-        if (scannerStatusText) scannerStatusText.textContent = 'Analizando rostro...';
+        if (video) {
+          video.style.display = 'block';
+        }
+        setFacialStatus('Analizando rostro...', 'pending');
         addAuditLog('Iniciando análisis facial mediante backend...', 'text-muted');
 
-        // Capturar frame con captureCanvas() — mismo flujo del login
         const canvas = document.getElementById('captureCanvas');
         if (canvas) {
           canvas.width = video ? (video.videoWidth || 320) : 320;
@@ -1643,108 +1690,63 @@ function setupInteractiveBanking(user) {
           if (video) canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
         }
         const frameData = captureFrame();
-        const payload = { faceImage: frameData };
+        const payload = { faceImage: frameData, faceVerified: false };
 
-        // Incluir token JWT (mismo que el login)
         const token = sessionStorage.getItem('authToken') || '';
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const response = await fetch('http://localhost:3000/api/fraud-check', {
+        const response = await fetch('/api/fraud-check', {
           method: 'POST',
           headers,
           body: JSON.stringify(payload),
         });
         const result = await response.json();
-        const verified = result.faceMatch ?? result.faceVerified ?? false;
+        similarity = typeof result.faceSimilarity === 'number' ? result.faceSimilarity : 0;
+        const verified = Boolean(result.faceMatch);
 
         faceValidated = verified;
 
         if (verified) {
-          attemptResult = 'aprobado';
-          if (statusFaceVal) {
-            statusFaceVal.textContent = '✓ Aprobado';
-            statusFaceVal.className = 'status-value val-success';
-          }
-          if (scannerStatusText) scannerStatusText.textContent = '✓ Rostro verificado';
+          attemptResultLabel = 'éxito';
+          attemptResultTone = 'success';
+          setFacialStatus('✓ Validación facial exitosa', 'success');
           addAuditLog('Biometría facial: Rostro VALIDADO correctamente.', 'val-success');
-          showToast('Validación facial exitosa', 'success');
-          if (faceScannerView) faceScannerView.className = 'face-scanner-view scanned';
+          showToast('✓ Validación facial exitosa', 'success');
         } else {
-          attemptResult = 'rechazado';
-          if (statusFaceVal) {
-            statusFaceVal.textContent = '✗ Rechazado';
-            statusFaceVal.className = 'status-value val-danger';
-          }
-          if (scannerStatusText) scannerStatusText.textContent = '✗ Rostro no verificado';
+          attemptResultLabel = 'fallo';
+          attemptResultTone = 'danger';
+          setFacialStatus('✗ Validación facial fallida, acceso denegado', 'danger');
           addAuditLog('Validación facial fallida', 'val-danger');
-          showToast('Validación facial fallida, acceso denegado', 'error');
-          if (faceScannerView) faceScannerView.className = 'face-scanner-view scanning';
+          showToast('✗ Validación facial fallida, acceso denegado', 'error');
         }
-
       } catch (err) {
-        attemptResult = 'error';
         console.error(err);
+        attemptResultLabel = 'fallo';
+        attemptResultTone = 'danger';
+        setFacialStatus('✗ Validación facial fallida, acceso denegado', 'danger');
         addAuditLog('Error en validación facial', 'val-danger');
-        showToast('Error al validar rostro', 'error');
+        showToast('✗ Validación facial fallida, acceso denegado', 'error');
       } finally {
-        // Ocultar video y restablecer UI
         const video = document.getElementById('faceVideo');
         if (video) video.style.display = 'none';
         btnEvaluateFace.disabled = false;
-        faceScannerView.className = 'face-scanner-view scanned';
 
-        // ── Registrar intento en el historial con fecha, hora y resultado ──
-        const fecha = attemptTime.toISOString();
-        const hora  = attemptTime.toLocaleTimeString('es-HN');
-        const dia   = attemptTime.toLocaleDateString('es-HN');
-        addAuditLog(
-          `📸 Verificación facial [${dia} ${hora}] — Resultado: ${attemptResult}`,
-          attemptResult === 'aprobado' ? 'val-success' : 'val-danger'
-        );
-        // Registrar en historial global del sistema
-        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-          window.registrarAccion(
-            'validacion_facial_fraude',
-            attemptResult === 'aprobado' ? 'exito' : (attemptResult === 'rechazado' ? 'advertencia' : 'error'),
-            {
-              fecha,
-              hora,
-              resultado: attemptResult,
-              usuario: user ? user.email : 'desconocido',
-              modulo: 'fraud_face_validation'
-            }
-          );
-        }
+        recordFacialAttempt(attemptResultLabel, attemptResultTone, {
+          fechaIntento: attemptTime.toISOString(),
+          similitud: Number(similarity.toFixed(3)),
+        });
       }
     }
 
     btnEvaluateFace.addEventListener('click', async () => {
-      // Si la tarjeta no está activa: no iniciar validación facial
-      if (!isCardActive()) {
-        const msg = 'Validación facial no disponible: la tarjeta no está activa';
-        if (statusFaceVal) {
-          statusFaceVal.textContent = msg;
-          statusFaceVal.className = 'status-value val-pending';
-        }
-        if (scannerStatusText) scannerStatusText.textContent = msg;
-        addAuditLog(`⚠️ ${msg}`, 'val-danger');
-        showToast(msg, 'error');
-        // Registrar el intento bloqueado en el historial
-        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-          const now = new Date();
-          window.registrarAccion(
-            'validacion_facial_fraude',
-            'advertencia',
-            {
-              fecha: now.toISOString(),
-              hora: now.toLocaleTimeString('es-HN'),
-              resultado: 'tarjeta_no_activa',
-              usuario: user ? user.email : 'desconocido',
-              modulo: 'fraud_face_validation'
-            }
-          );
-        }
+      if (!isCardActive() || cardBlocked) {
+        const msg = 'Validación facial no disponible: tarjeta bloqueada';
+        setFacialStatus(msg, 'warning');
+        addAuditLog(`⚠️ ${msg}`, 'val-pending');
+        showToast(msg, 'warning');
+        faceValidated = false;
+        recordFacialAttempt('no disponible', 'warning', { motivo: 'tarjeta_bloqueada_o_pendiente' });
         return;
       }
       btnEvaluateFace.disabled = true;

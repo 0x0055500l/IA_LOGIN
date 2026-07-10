@@ -3,6 +3,7 @@ const path = require('path');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { buildFaceSignature, calculateFaceSimilarity } = require('./faceMatcher');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,6 +15,9 @@ const JWT_EXPIRATION = '1h'; // Token expires in 1 hour
 
 // Token blacklist (for logout - in production, use Redis)
 const tokenBlacklist = new Set();
+const REGISTERED_FACE_IMAGE = 'data:image/png;base64,banksecure-registered-face-model';
+const REGISTERED_FACE_SIGNATURE = buildFaceSignature(REGISTERED_FACE_IMAGE);
+const FACE_MATCH_THRESHOLD = 0.82;
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
@@ -506,13 +510,21 @@ app.post('/api/chat', authenticateToken, (req, res) => {
 
 // Fraud check — now protected
 app.post('/api/fraud-check', authenticateToken, (req, res) => {
-  const { amount, hour, location, lastLocation, faceVerified } = req.body;
+  const { amount, hour, location, lastLocation, faceVerified, faceImage } = req.body;
 
   const parsedAmount = Number(amount || 0);
   const parsedHour = Number(String(hour || '00:00').split(':')[0]);
   const isSuspiciousHour = parsedHour >= 23 || parsedHour <= 5;
   const isUnusualAmount = parsedAmount > 3000;
   const isImpossibleTravel = location && lastLocation && location !== lastLocation;
+
+  const capturedFaceSignature = faceImage ? buildFaceSignature(faceImage) : null;
+  const faceSimilarity = capturedFaceSignature
+    ? calculateFaceSimilarity(capturedFaceSignature, REGISTERED_FACE_SIGNATURE)
+    : 0;
+  const faceMatch = capturedFaceSignature
+    ? faceSimilarity >= FACE_MATCH_THRESHOLD
+    : faceVerified === true;
 
   let score = 0;
   let reasons = [];
@@ -529,18 +541,18 @@ app.post('/api/fraud-check', authenticateToken, (req, res) => {
     score += 20;
     reasons.push('Horario sospechoso para una transacción.');
   }
-  if (!faceVerified) {
+  if (!faceMatch) {
     score += 20;
     reasons.push('No se confirmó la verificación facial.');
   }
 
   if (score >= 70) {
-    return res.json({ score: 85, level: 'alto', decision: 'Verificación facial obligatoria antes de aprobar.', reasons, legitimateUser: true, faceMatch: faceVerified === true });
+    return res.json({ score: 85, level: 'alto', decision: 'Verificación facial obligatoria antes de aprobar.', reasons, legitimateUser: true, faceMatch, faceSimilarity });
   }
   if (score >= 40) {
-    return res.json({ score: 55, level: 'medio', decision: 'Verificación facial obligatoria antes de aprobar.', reasons, legitimateUser: true, faceMatch: faceVerified === true });
+    return res.json({ score: 55, level: 'medio', decision: 'Verificación facial obligatoria antes de aprobar.', reasons, legitimateUser: true, faceMatch, faceSimilarity });
   }
-  res.json({ score: 12, level: 'bajo', decision: 'Transacción aprobada.', reasons: ['El patrón de riesgo se considera aceptable.'], legitimateUser: true, faceMatch: faceVerified === true });
+  res.json({ score: 12, level: 'bajo', decision: 'Transacción aprobada.', reasons: ['El patrón de riesgo se considera aceptable.'], legitimateUser: true, faceMatch, faceSimilarity });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
