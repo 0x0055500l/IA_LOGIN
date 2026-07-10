@@ -260,6 +260,18 @@ function applyDashboardLanguage(lang) {
 document.addEventListener('DOMContentLoaded', async () => {
   const sessionLoader = document.getElementById('sessionLoader');
   const dashboardShell = document.getElementById('dashboardShell');
+  const dashboardView = document.getElementById('dashboardView');
+  const settingsView = document.getElementById('settingsView');
+  const historialView = document.getElementById('historialView');
+
+  if (sessionLoader) {
+    sessionLoader.classList.add('hidden');
+    sessionLoader.style.display = 'none';
+  }
+  if (dashboardShell) dashboardShell.style.display = '';
+  if (dashboardView) dashboardView.style.display = 'grid';
+  if (settingsView) settingsView.style.display = 'none';
+  if (historialView) historialView.style.display = 'none';
 
   // JWT Session Validation
   const token = sessionStorage.getItem('authToken');
@@ -290,17 +302,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     sessionStorage.setItem('userName', user.name);
     sessionStorage.setItem('userEmail', user.email);
 
-    // Store user preferences
     const prefs = user.preferences || { language: 'es', theme: 'dark', twoFactor: false, strictMode: false };
     sessionStorage.setItem('userPreferences', JSON.stringify(prefs));
     localStorage.setItem('userTheme', prefs.theme);
     localStorage.setItem('userLanguage', prefs.language);
 
-    if (sessionLoader) sessionLoader.classList.add('hidden');
-    if (dashboardShell) dashboardShell.style.display = '';
-
     initializeDashboard(user, session.expiresAt);
-
   } catch (error) {
     console.error('Session validation failed:', error);
     sessionStorage.clear();
