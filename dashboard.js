@@ -503,6 +503,36 @@ function initializeDashboard(user, expiresAt) {
   }, 30000);
 }
 
+// ─── Shared Card Helpers ───
+const CARDS_KEY = 'bankSecureCards';
+const DEFAULT_CARD = {
+  number: '4111 1111 1111 1111',
+  expiry: '11/28',
+  cvv: '123',
+  status: 'Pendiente', // Starts as Pendiente (unactivated)
+  isDefault: true
+};
+
+function getCards() {
+  try {
+    const raw = localStorage.getItem(CARDS_KEY);
+    if (!raw) return [{ ...DEFAULT_CARD }];
+    const list = JSON.parse(raw);
+    return list.length ? list : [{ ...DEFAULT_CARD }];
+  } catch {
+    return [{ ...DEFAULT_CARD }];
+  }
+}
+
+function saveCards(list) {
+  localStorage.setItem(CARDS_KEY, JSON.stringify(list));
+}
+
+function isCardActive() {
+  const cards = getCards();
+  return cards.length > 0 && cards[0].status === 'Activa';
+}
+
 // ─── Settings Handlers ───
 function setupSettingsHandlers(user, expiresAt) {
   const profileForm = document.getElementById('profileSettingsForm');
@@ -674,7 +704,6 @@ function setupSettingsHandlers(user, expiresAt) {
 
   // ─── Card Manager ─────────────────────────────────────────────────────────
   (function initCardManager() {
-    const CARDS_KEY = 'bankSecureCards';
     const ACTIVE_CARD_KEY = 'bankSecureActiveCard';
 
     const cfgNum    = document.getElementById('cfgCardNumber');
@@ -692,28 +721,6 @@ function setupSettingsHandlers(user, expiresAt) {
     if (!cfgNum) return; // tab not in DOM
 
     let editingIdx = -1; // -1 = editing "new" or default
-
-    // ── Default card ──
-    const DEFAULT_CARD = {
-      number: '4111 1111 1111 1111',
-      expiry: '11/28',
-      cvv: '123',
-      status: 'Activa',
-      isDefault: true
-    };
-
-    function getCards() {
-      try {
-        const raw = localStorage.getItem(CARDS_KEY);
-        if (!raw) return [{ ...DEFAULT_CARD }];
-        const list = JSON.parse(raw);
-        return list.length ? list : [{ ...DEFAULT_CARD }];
-      } catch { return [{ ...DEFAULT_CARD }]; }
-    }
-
-    function saveCards(list) {
-      localStorage.setItem(CARDS_KEY, JSON.stringify(list));
-    }
 
     // ── Luhn algorithm ──
     function luhnCheck(num) {
@@ -1538,12 +1545,8 @@ function setupInteractiveBanking(user) {
   // ── Sincronización de estado de tarjeta con Configuración ──
   function updateCardStateFromStorage() {
     try {
-      const raw = localStorage.getItem('bankSecureCards');
-      let status = 'Pendiente';
-      if (raw) {
-        const list = JSON.parse(raw);
-        if (list && list.length > 0) status = list[0].status;
-      }
+      const cards = getCards();
+      const status = cards.length > 0 ? cards[0].status : 'Pendiente';
       
       cardBlocked = (status === 'Bloqueada');
 
@@ -1572,7 +1575,7 @@ function setupInteractiveBanking(user) {
   window.addEventListener('card_state_changed', updateCardStateFromStorage);
   window.addEventListener('storage', (e) => {
     updateDeviceStatusBadge();
-    if (e.key === 'bankSecureCards') updateCardStateFromStorage();
+    if (e.key === CARDS_KEY) updateCardStateFromStorage();
   });
 
   // Custom event/listener for device status changes
@@ -1717,9 +1720,9 @@ function setupInteractiveBanking(user) {
     }
 
     btnEvaluateFace.addEventListener('click', async () => {
-      // Si la tarjeta está bloqueada o en estado Pendiente: no iniciar validación facial
-      if (cardBlocked || _cardIsPending()) {
-        const msg = 'Validación facial no disponible: tarjeta bloqueada';
+      // Si la tarjeta no está activa: no iniciar validación facial
+      if (!isCardActive()) {
+        const msg = 'Validación facial no disponible: la tarjeta no está activa';
         if (statusFaceVal) {
           statusFaceVal.textContent = msg;
           statusFaceVal.className = 'status-value val-pending';
@@ -1736,7 +1739,7 @@ function setupInteractiveBanking(user) {
             {
               fecha: now.toISOString(),
               hora: now.toLocaleTimeString('es-HN'),
-              resultado: 'tarjeta_bloqueada_o_pendiente',
+              resultado: 'tarjeta_no_activa',
               usuario: user ? user.email : 'desconocido',
               modulo: 'fraud_face_validation'
             }
@@ -1753,9 +1756,9 @@ function setupInteractiveBanking(user) {
   // Validate access button
   if (btnValidateAccess) {
     btnValidateAccess.addEventListener('click', async () => {
-      if (cardBlocked) {
-        showToast('Operación denegada: Tarjeta bloqueada.', 'error');
-        addAuditLog('Intento de acceso denegado: Tarjeta bloqueada.', 'val-danger');
+      if (!isCardActive()) {
+        showToast('Operación denegada: La tarjeta no está activa.', 'error');
+        addAuditLog('Intento de acceso denegado: La tarjeta no está activa.', 'val-danger');
         return;
       }
 
@@ -1807,14 +1810,11 @@ function setupInteractiveBanking(user) {
     btnBlockCard.addEventListener('click', () => {
       // Sincronizar bloqueo en Configuración
       try {
-        const raw = localStorage.getItem('bankSecureCards');
-        if (raw) {
-          const list = JSON.parse(raw);
-          if (list && list.length > 0) {
-            list[0].status = 'Bloqueada';
-            localStorage.setItem('bankSecureCards', JSON.stringify(list));
-            window.dispatchEvent(new Event('card_state_changed'));
-          }
+        const list = getCards();
+        if (list && list.length > 0) {
+          list[0].status = 'Bloqueada';
+          saveCards(list);
+          window.dispatchEvent(new Event('card_state_changed'));
         }
       } catch (e) {}
 
@@ -1853,14 +1853,11 @@ function setupInteractiveBanking(user) {
       
       // Sincronizar reactivación en Configuración
       try {
-        const raw = localStorage.getItem('bankSecureCards');
-        if (raw) {
-          const list = JSON.parse(raw);
-          if (list && list.length > 0) {
-            list[0].status = 'Activa';
-            localStorage.setItem('bankSecureCards', JSON.stringify(list));
-            window.dispatchEvent(new Event('card_state_changed'));
-          }
+        const list = getCards();
+        if (list && list.length > 0) {
+          list[0].status = 'Activa';
+          saveCards(list);
+          window.dispatchEvent(new Event('card_state_changed'));
         }
       } catch (e) {}
 
@@ -1880,12 +1877,12 @@ function setupInteractiveBanking(user) {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
-      if (cardBlocked || (typeof _cardIsPending === 'function' && _cardIsPending())) {
-          showToast('Transacción no disponible: tarjeta bloqueada o pendiente', 'error');
-          addAuditLog('Transacción denegada: tarjeta no está activa', 'val-danger');
-          saveTransaction('Simulación Compra', amountVal, 'Denegado');
-          return;
-        }
+      if (!isCardActive()) {
+        showToast('Transacción no disponible: la tarjeta no está activa', 'error');
+        addAuditLog('Transacción denegada: la tarjeta no está activa', 'val-danger');
+        saveTransaction('Simulación Compra', amountVal, 'Denegado');
+        return;
+      }
       if (!isDeviceTrusted) {
           // Requerir autenticación biométrica obligatoria para dispositivos no confiables
           showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
@@ -1943,13 +1940,12 @@ function setupInteractiveBanking(user) {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
-      if (cardBlocked || (typeof _cardIsPending === 'function' && _cardIsPending())) {
-          // Facial validation not available when card is blocked or pending
-          showToast('Validación facial no disponible: tarjeta bloqueada o pendiente', 'error');
-          addAuditLog('Validación facial no disponible: tarjeta bloqueada o pendiente', 'val-danger');
-          saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-          return;
-        }
+      if (!isCardActive()) {
+        showToast('Transacción no disponible: la tarjeta no está activa', 'error');
+        addAuditLog('Transacción denegada: la tarjeta no está activa', 'val-danger');
+        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+        return;
+      }
       if (!isDeviceTrusted) {
           // Requerir autenticación biométrica obligatoria para dispositivos no confiables
           showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
