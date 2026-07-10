@@ -47,6 +47,7 @@ const DASHBOARD_TRANSLATIONS = {
     settings_tab_profile: "Perfil",
     settings_tab_lang: "Idioma",
     settings_tab_theme: "Tema Visual",
+    settings_tab_cards: "Tarjetas",
     settings_tab_security: "Seguridad",
     profile_title: "Editar Perfil",
     profile_subtitle: "Actualiza tu nombre y correo electrónico principal de la cuenta.",
@@ -83,7 +84,26 @@ const DASHBOARD_TRANSLATIONS = {
     save_error_toast: "Error al guardar los cambios.",
     pass_mismatch_toast: "La contraseña debe cumplir con los requisitos mínimos.",
     device_trust_added: "Dispositivo registrado correctamente.",
-    device_trust_removed: "Dispositivo desvinculado correctamente."
+    device_trust_removed: "Dispositivo desvinculado correctamente.",
+    cards_title: "Gestión de Tarjetas",
+    cards_subtitle: "Administra tus tarjetas bancarias. La tarjeta predeterminada se usa para pruebas y validaciones.",
+    cards_number: "Número de Tarjeta",
+    cards_expiry: "Vencimiento",
+    cards_cvv: "CVV",
+    cards_status: "Estado",
+    cards_validate: "Validar Tarjeta",
+    cards_save: "Guardar Cambios",
+    cards_add: "Agregar Tarjeta",
+    cards_saved_title: "Tarjetas Guardadas",
+    cards_luhn_valid: "✓ Correcta",
+    cards_luhn_invalid: "✗ Incorrecta",
+    cards_updated: "Tarjeta actualizada correctamente",
+    cards_added: "Nueva tarjeta agregada",
+    cards_deleted: "Tarjeta eliminada",
+    cards_error_number: "Número de tarjeta inválido (debe pasar validación Luhn)",
+    cards_error_expiry: "Fecha de vencimiento inválida o ya pasó",
+    cards_error_cvv: "CVV inválido (3-4 dígitos)",
+    cards_empty: "No hay tarjetas guardadas"
   },
   en: {
     brand_title: "BankSecure",
@@ -132,6 +152,7 @@ const DASHBOARD_TRANSLATIONS = {
     settings_tab_profile: "Profile",
     settings_tab_lang: "Language",
     settings_tab_theme: "Visual Theme",
+    settings_tab_cards: "Cards",
     settings_tab_security: "Security",
     profile_title: "Edit Profile",
     profile_subtitle: "Update your name and primary email address of your account.",
@@ -168,7 +189,26 @@ const DASHBOARD_TRANSLATIONS = {
     save_error_toast: "Error saving changes.",
     pass_mismatch_toast: "Password does not meet the minimum requirements.",
     device_trust_added: "Device registered successfully.",
-    device_trust_removed: "Device unregistered successfully."
+    device_trust_removed: "Device unregistered successfully.",
+    cards_title: "Card Management",
+    cards_subtitle: "Manage your bank cards. The default card is used for testing and validations.",
+    cards_number: "Card Number",
+    cards_expiry: "Expiry Date",
+    cards_cvv: "CVV",
+    cards_status: "Status",
+    cards_validate: "Validate Card",
+    cards_save: "Save Changes",
+    cards_add: "Add Card",
+    cards_saved_title: "Saved Cards",
+    cards_luhn_valid: "✓ Valid",
+    cards_luhn_invalid: "✗ Invalid",
+    cards_updated: "Card updated successfully",
+    cards_added: "New card added",
+    cards_deleted: "Card deleted",
+    cards_error_number: "Invalid card number (must pass Luhn validation)",
+    cards_error_expiry: "Invalid or past expiry date",
+    cards_error_cvv: "Invalid CVV (3-4 digits)",
+    cards_empty: "No saved cards"
   }
 };
 
@@ -485,6 +525,7 @@ function setupSettingsHandlers(user, expiresAt) {
       perfilTab: 'btnPerfilTab',
       idiomaTab: 'btnIdiomaTab',
       temaTab: 'btnTemaTab',
+      tarjetasTab: 'btnTarjetasTab',
       seguridadTab: 'btnSeguridadTab'
     };
     document.getElementById(btnMap[paneId]).classList.add('active');
@@ -630,6 +671,334 @@ function setupSettingsHandlers(user, expiresAt) {
       }
     });
   }
+
+  // ─── Card Manager ─────────────────────────────────────────────────────────
+  (function initCardManager() {
+    const CARDS_KEY = 'bankSecureCards';
+    const ACTIVE_CARD_KEY = 'bankSecureActiveCard';
+
+    const cfgNum    = document.getElementById('cfgCardNumber');
+    const cfgExp    = document.getElementById('cfgCardExpiry');
+    const cfgCvv    = document.getElementById('cfgCardCvv');
+    const cfgStatus = document.getElementById('cfgCardStatus');
+    const luhnBadge = document.getElementById('cfgCardLuhnBadge');
+    const feedback  = document.getElementById('cfgCardFeedback');
+    const listEl    = document.getElementById('cfgCardList');
+
+    const btnValidate = document.getElementById('cfgCardValidateBtn');
+    const btnSave     = document.getElementById('cfgCardSaveBtn');
+    const btnAdd      = document.getElementById('cfgCardAddBtn');
+
+    if (!cfgNum) return; // tab not in DOM
+
+    let editingIdx = -1; // -1 = editing "new" or default
+
+    // ── Default card ──
+    const DEFAULT_CARD = {
+      number: '4111 1111 1111 1111',
+      expiry: '11/28',
+      cvv: '123',
+      status: 'Activa',
+      isDefault: true
+    };
+
+    function getCards() {
+      try {
+        const raw = localStorage.getItem(CARDS_KEY);
+        if (!raw) return [{ ...DEFAULT_CARD }];
+        const list = JSON.parse(raw);
+        return list.length ? list : [{ ...DEFAULT_CARD }];
+      } catch { return [{ ...DEFAULT_CARD }]; }
+    }
+
+    function saveCards(list) {
+      localStorage.setItem(CARDS_KEY, JSON.stringify(list));
+    }
+
+    // ── Luhn algorithm ──
+    function luhnCheck(num) {
+      const digits = num.replace(/\D/g, '');
+      if (digits.length < 13 || digits.length > 19) return false;
+      let sum = 0;
+      let alt = false;
+      for (let i = digits.length - 1; i >= 0; i--) {
+        let n = parseInt(digits[i], 10);
+        if (alt) { n *= 2; if (n > 9) n -= 9; }
+        sum += n;
+        alt = !alt;
+      }
+      return sum % 10 === 0;
+    }
+
+    // ── Expiry validation (must be future) ──
+    function isExpiryFuture(exp) {
+      const match = exp.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+      if (!match) return false;
+      const month = parseInt(match[1], 10);
+      const year  = 2000 + parseInt(match[2], 10);
+      const now   = new Date();
+      const expDate = new Date(year, month); // 1st of NEXT month
+      return expDate > now;
+    }
+
+    // ── CVV validation ──
+    function isCvvValid(cvv) {
+      return /^\d{3,4}$/.test(cvv);
+    }
+
+    // ── Format card number input ──
+    cfgNum.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '');
+      let formatted = '';
+      for (let i = 0; i < v.length && i < 16; i++) {
+        if (i > 0 && i % 4 === 0) formatted += ' ';
+        formatted += v[i];
+      }
+      e.target.value = formatted;
+      updateLuhnBadge();
+    });
+
+    // ── Format expiry input ──
+    cfgExp.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '');
+      if (v.length > 2) {
+        e.target.value = v.substring(0, 2) + '/' + v.substring(2, 4);
+      } else {
+        e.target.value = v;
+      }
+    });
+
+    // ── CVV only digits ──
+    cfgCvv.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+    });
+
+    // ── Live Luhn badge ──
+    function updateLuhnBadge() {
+      const lang = localStorage.getItem('userLanguage') || 'es';
+      const digits = cfgNum.value.replace(/\D/g, '');
+      if (digits.length < 13) {
+        luhnBadge.textContent = '';
+        luhnBadge.className = 'card-luhn-badge';
+        return;
+      }
+      if (luhnCheck(cfgNum.value)) {
+        luhnBadge.textContent = DASHBOARD_TRANSLATIONS[lang].cards_luhn_valid;
+        luhnBadge.className = 'card-luhn-badge valid';
+      } else {
+        luhnBadge.textContent = DASHBOARD_TRANSLATIONS[lang].cards_luhn_invalid;
+        luhnBadge.className = 'card-luhn-badge invalid';
+      }
+    }
+
+    // ── Show feedback ──
+    function showCardFeedback(msg, type) {
+      if (!feedback) return;
+      feedback.textContent = msg;
+      feedback.style.display = 'block';
+      feedback.style.background = type === 'success'
+        ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+      feedback.style.color = type === 'success' ? '#22c55e' : '#ef4444';
+      feedback.style.borderColor = type === 'success'
+        ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)';
+      setTimeout(() => { feedback.style.display = 'none'; }, 4000);
+    }
+
+    // ── Load a card into the form ──
+    function loadCardToForm(card, idx) {
+      cfgNum.value    = card.number || '';
+      cfgExp.value    = card.expiry || '';
+      cfgCvv.value    = card.cvv || '';
+      cfgStatus.value = card.status || 'Activa';
+      editingIdx = idx;
+      updateLuhnBadge();
+    }
+
+    // ── Clear form for new card ──
+    function clearForm() {
+      cfgNum.value = '';
+      cfgExp.value = '';
+      cfgCvv.value = '';
+      cfgStatus.value = 'Activa';
+      editingIdx = -1;
+      luhnBadge.textContent = '';
+      luhnBadge.className = 'card-luhn-badge';
+    }
+
+    // ── Render the card list ──
+    function renderCardList() {
+      const cards = getCards();
+      const lang = localStorage.getItem('userLanguage') || 'es';
+
+      if (!listEl) return;
+      if (cards.length === 0) {
+        listEl.innerHTML = `<div class="card-list-empty">${DASHBOARD_TRANSLATIONS[lang].cards_empty}</div>`;
+        return;
+      }
+
+      listEl.innerHTML = cards.map((c, i) => {
+        const masked = c.number ? ('•••• •••• •••• ' + c.number.replace(/\D/g, '').slice(-4)) : '—';
+        const statusMap = { Activa: 'active', Bloqueada: 'blocked', Pendiente: 'pending' };
+        const statusClass = statusMap[c.status] || 'pending';
+        const isSelected = i === editingIdx ? ' selected' : '';
+        const defBadge = c.isDefault ? ' ⭐' : '';
+
+        return `
+          <div class="card-list-item${isSelected}" data-idx="${i}">
+            <div class="card-list-left">
+              <span class="card-list-icon">💳</span>
+              <div class="card-list-info">
+                <span class="card-list-number">${masked}${defBadge}</span>
+                <span class="card-list-meta">${lang === 'en' ? 'Exp' : 'Venc'}: ${c.expiry || '—'} · ${c.status}</span>
+              </div>
+            </div>
+            <div class="card-list-right">
+              <span class="card-status-badge ${statusClass}">${c.status}</span>
+              <button class="card-list-delete" data-delidx="${i}" title="${lang === 'en' ? 'Delete' : 'Eliminar'}">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Select card on click
+      listEl.querySelectorAll('.card-list-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.card-list-delete')) return;
+          const idx = parseInt(el.dataset.idx, 10);
+          loadCardToForm(cards[idx], idx);
+          renderCardList();
+        });
+      });
+
+      // Delete button
+      listEl.querySelectorAll('.card-list-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.delidx, 10);
+          cards.splice(idx, 1);
+          saveCards(cards);
+          if (editingIdx === idx) clearForm();
+          else if (editingIdx > idx) editingIdx--;
+          renderCardList();
+          showToast(DASHBOARD_TRANSLATIONS[lang].cards_deleted, 'success');
+        });
+      });
+    }
+
+    // ── Validate button ──
+    if (btnValidate) {
+      btnValidate.addEventListener('click', () => {
+        const lang = localStorage.getItem('userLanguage') || 'es';
+        updateLuhnBadge();
+        if (luhnCheck(cfgNum.value)) {
+          showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_luhn_valid, 'success');
+          showToast(DASHBOARD_TRANSLATIONS[lang].cards_luhn_valid, 'success');
+        } else {
+          showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
+          showToast(DASHBOARD_TRANSLATIONS[lang].cards_luhn_invalid, 'error');
+        }
+      });
+    }
+
+    // ── Validate all fields helper ──
+    function validateCardFields() {
+      const lang = localStorage.getItem('userLanguage') || 'es';
+      if (!luhnCheck(cfgNum.value)) {
+        showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
+        showToast(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
+        return false;
+      }
+      if (!isExpiryFuture(cfgExp.value)) {
+        showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_error_expiry, 'error');
+        showToast(DASHBOARD_TRANSLATIONS[lang].cards_error_expiry, 'error');
+        return false;
+      }
+      if (!isCvvValid(cfgCvv.value)) {
+        showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_error_cvv, 'error');
+        showToast(DASHBOARD_TRANSLATIONS[lang].cards_error_cvv, 'error');
+        return false;
+      }
+      return true;
+    }
+
+    // ── Save Changes button ──
+    if (btnSave) {
+      btnSave.addEventListener('click', () => {
+        if (!validateCardFields()) return;
+        const lang = localStorage.getItem('userLanguage') || 'es';
+        const cards = getCards();
+        const cardData = {
+          number: cfgNum.value.trim(),
+          expiry: cfgExp.value.trim(),
+          cvv: cfgCvv.value.trim(),
+          status: cfgStatus.value
+        };
+
+        if (editingIdx >= 0 && editingIdx < cards.length) {
+          // Preserve the isDefault flag
+          cardData.isDefault = cards[editingIdx].isDefault || false;
+          cards[editingIdx] = cardData;
+        } else {
+          // Not editing an existing card — save as first card
+          cards[0] = { ...cards[0], ...cardData };
+        }
+
+        saveCards(cards);
+        renderCardList();
+        showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_updated, 'success');
+        showToast(DASHBOARD_TRANSLATIONS[lang].cards_updated, 'success');
+
+        // Log to system history
+        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+          window.registrarAccion('tarjeta_actualizada', 'exito', {
+            last4: cardData.number.replace(/\D/g, '').slice(-4),
+            status: cardData.status
+          });
+        }
+      });
+    }
+
+    // ── Add Card button ──
+    if (btnAdd) {
+      btnAdd.addEventListener('click', () => {
+        if (!validateCardFields()) return;
+        const lang = localStorage.getItem('userLanguage') || 'es';
+        const cards = getCards();
+        const newCard = {
+          number: cfgNum.value.trim(),
+          expiry: cfgExp.value.trim(),
+          cvv: cfgCvv.value.trim(),
+          status: cfgStatus.value,
+          isDefault: false
+        };
+
+        cards.push(newCard);
+        saveCards(cards);
+        editingIdx = cards.length - 1;
+        renderCardList();
+        showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_added, 'success');
+        showToast(DASHBOARD_TRANSLATIONS[lang].cards_added, 'success');
+
+        // Clear form for next card
+        clearForm();
+
+        // Log to system history
+        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+          window.registrarAccion('tarjeta_agregada', 'exito', {
+            last4: newCard.number.replace(/\D/g, '').slice(-4),
+            status: newCard.status
+          });
+        }
+      });
+    }
+
+    // ── Initial load ──
+    const cards = getCards();
+    if (cards.length > 0) {
+      loadCardToForm(cards[0], 0);
+    }
+    renderCardList();
+  })();
 }
 
 // ─── Theme Apply Helper ───
