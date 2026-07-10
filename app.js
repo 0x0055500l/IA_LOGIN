@@ -46,7 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
     autoHideDialCode: false,
     initialCountry: "hn",
     preferredCountries: ["hn"],
-    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+    utilsScript:
+      "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
   });
 
   phoneInput.value = "+504";
@@ -133,24 +134,27 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target.value = clean;
     }
     const err = validators.email(clean);
-    
+
     // Clear previous timeout
     clearTimeout(emailCheckTimeout);
     isEmailValidDeep = false;
     emailLoader.classList.remove("visible");
-    
+
     if (err) {
       showError(emailError, err);
     } else {
       showError(emailError, null);
       // Simulate Deep Validation (Ping MX records / Backend check)
       emailLoader.classList.add("visible");
-      
+
       emailCheckTimeout = setTimeout(() => {
         // Simulación de respuesta de backend
         emailLoader.classList.remove("visible");
         if (clean === "test@error.com") {
-          showError(emailError, "Este correo no existe o no puede recibir mensajes.");
+          showError(
+            emailError,
+            "Este correo no existe o no puede recibir mensajes.",
+          );
           isEmailValidDeep = false;
         } else {
           showError(emailError, null); // Valid!
@@ -163,8 +167,8 @@ document.addEventListener("DOMContentLoaded", () => {
   phoneInput.addEventListener("input", (e) => {
     const originalValue = e.target.value;
     // Permitir solo el signo + al principio y números después.
-    const sanitizedValue = originalValue.replace(/(?!^\+)[^\d\s-]/g, '');
-    
+    const sanitizedValue = originalValue.replace(/(?!^\+)[^\d\s-]/g, "");
+
     if (originalValue !== sanitizedValue) {
       e.target.value = sanitizedValue;
       showError(phoneError, "Solo se permiten números en este campo.");
@@ -180,7 +184,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (iti.isValidNumber()) {
       showError(phoneError, null);
     } else {
-      showError(phoneError, "Formato o longitud de número inválido para el país.");
+      showError(
+        phoneError,
+        "Formato o longitud de número inválido para el país.",
+      );
     }
   });
 
@@ -190,7 +197,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (iti.isValidNumber()) {
         showError(phoneError, null);
       } else {
-        showError(phoneError, "El número no coincide con el país seleccionado.");
+        showError(
+          phoneError,
+          "El número no coincide con el país seleccionado.",
+        );
       }
     }
   });
@@ -242,14 +252,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (streamActive) return;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
       faceVideo.srcObject = stream;
       await faceVideo.play();
       streamActive = true;
       cameraStatus.textContent = "Cámara activa. Presiona Escanear Rostro.";
       cameraStatus.className = "camera-status";
     } catch (error) {
-      cameraStatus.textContent = "No se pudo acceder a la cámara. Usa un navegador con permisos.";
+      cameraStatus.textContent =
+        "No se pudo acceder a la cámara. Usa un navegador con permisos.";
       cameraStatus.className = "camera-status error";
       console.error(error);
     }
@@ -259,7 +273,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const context = captureCanvas.getContext("2d");
     captureCanvas.width = faceVideo.videoWidth || 320;
     captureCanvas.height = faceVideo.videoHeight || 240;
-    context.drawImage(faceVideo, 0, 0, captureCanvas.width, captureCanvas.height);
+    context.drawImage(
+      faceVideo,
+      0,
+      0,
+      captureCanvas.width,
+      captureCanvas.height,
+    );
     return captureCanvas.toDataURL("image/png");
   }
 
@@ -294,9 +314,12 @@ document.addEventListener("DOMContentLoaded", () => {
       faceVerified = result.faceMatch && result.faceMatch !== false;
       riskSummary.textContent = `${result.decision} Score de riesgo: ${result.score} (${result.level}).`;
       riskSummary.className = `risk-summary ${result.level === "alto" ? "warning" : result.level === "medio" ? "warning" : "success"}`;
-      cameraStatus.textContent = faceVerified ? "Rostro verificado con éxito." : "El rostro no coincidió con el perfil legítimo.";
+      cameraStatus.textContent = faceVerified
+        ? "Rostro verificado con éxito."
+        : "El rostro no coincidió con el perfil legítimo.";
       if (result.level !== "bajo") {
-        formFeedback.textContent = "Se requiere verificación facial previa a la aprobación.";
+        formFeedback.textContent =
+          "Se requiere verificación facial previa a la aprobación.";
         formFeedback.className = "form-feedback feedback-warning";
       }
     } catch (error) {
@@ -339,7 +362,10 @@ document.addEventListener("DOMContentLoaded", () => {
       showError(emailError, emailErr);
       hasError = true;
     } else if (!isEmailValidDeep) {
-      showError(emailError, "Espera a la validación del correo o ingresa uno válido.");
+      showError(
+        emailError,
+        "Espera a la validación del correo o ingresa uno válido.",
+      );
       hasError = true;
     }
 
@@ -349,7 +375,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!iti.isValidNumber()) {
-      showError(phoneError, "Número telefónico inválido para la región seleccionada.");
+      showError(
+        phoneError,
+        "Número telefónico inválido para la región seleccionada.",
+      );
       hasError = true;
     }
 
@@ -379,6 +408,12 @@ document.addEventListener("DOMContentLoaded", () => {
         formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
         formFeedback.className = "form-feedback feedback-success";
         localStorage.removeItem("loginAttempts");
+
+        // Store JWT token securely in sessionStorage (cleared on tab close)
+        sessionStorage.setItem("authToken", result.token);
+        sessionStorage.setItem("userName", result.user.name);
+        sessionStorage.setItem("userEmail", result.user.email);
+
         // Small delay so user sees the success message
         setTimeout(() => {
           window.location.href = "dashboard.html";
@@ -413,7 +448,9 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem("lockoutEnd", lockoutEnd);
       checkRateLimit();
     } else {
-      formFeedback.textContent = serverMessage || `Credenciales incorrectas. Intento ${attempts}/${MAX_ATTEMPTS}`;
+      formFeedback.textContent =
+        serverMessage ||
+        `Credenciales incorrectas. Intento ${attempts}/${MAX_ATTEMPTS}`;
       formFeedback.className = "form-feedback feedback-error";
     }
   }
