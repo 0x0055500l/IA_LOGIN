@@ -945,6 +945,10 @@ function setupSettingsHandlers(user, expiresAt) {
 
         saveCards(cards);
         renderCardList();
+        
+        // Notificar al dashboard que el estado de la tarjeta cambió
+        window.dispatchEvent(new Event('card_state_changed'));
+        
         showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_updated, 'success');
         showToast(DASHBOARD_TRANSLATIONS[lang].cards_updated, 'success');
 
@@ -976,6 +980,10 @@ function setupSettingsHandlers(user, expiresAt) {
         saveCards(cards);
         editingIdx = cards.length - 1;
         renderCardList();
+
+        // Notificar al dashboard que el estado de la tarjeta cambió
+        window.dispatchEvent(new Event('card_state_changed'));
+
         showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_added, 'success');
         showToast(DASHBOARD_TRANSLATIONS[lang].cards_added, 'success');
 
@@ -1393,7 +1401,7 @@ function setupInteractiveBanking(user) {
   const bankingTransactionsList = document.getElementById('bankingTransactionsList');
 
   let faceValidated = false;
-  let cardBlocked = localStorage.getItem('cardBlockedState') === 'true';
+  let cardBlocked = false;
   let balance = parseFloat(localStorage.getItem('cardBalanceVal') || '5248.50');
 
   // Update Admin-Only Visibility
@@ -1527,17 +1535,45 @@ function setupInteractiveBanking(user) {
   updateDeviceStatusBadge();
   renderTransactionsTable();
 
-  // If card was previously blocked, update UI state
-  if (cardBlocked && statusCardVal) {
-    statusCardVal.textContent = '🛑 Bloqueada';
-    statusCardVal.className = 'status-value val-danger';
-  } else if (statusCardVal) {
-    statusCardVal.textContent = 'Pendiente';
-    statusCardVal.className = 'status-value val-pending';
+  // ── Sincronización de estado de tarjeta con Configuración ──
+  function updateCardStateFromStorage() {
+    try {
+      const raw = localStorage.getItem('bankSecureCards');
+      let status = 'Pendiente';
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (list && list.length > 0) status = list[0].status;
+      }
+      
+      cardBlocked = (status === 'Bloqueada');
+
+      if (statusCardVal) {
+        if (status === 'Activa') {
+          statusCardVal.textContent = '✓ Activa';
+          statusCardVal.className = 'status-value val-success';
+        } else if (status === 'Bloqueada') {
+          statusCardVal.textContent = '🛑 Bloqueada';
+          statusCardVal.className = 'status-value val-danger';
+        } else {
+          statusCardVal.textContent = 'Pendiente';
+          statusCardVal.className = 'status-value val-pending';
+        }
+      }
+      updateBalanceAndSecurityUI();
+    } catch (e) {
+      console.error('Error al sincronizar estado de tarjeta', e);
+    }
   }
 
-  // Listen to storage changes to keep device status updated
-  window.addEventListener('storage', updateDeviceStatusBadge);
+  // Carga inicial
+  updateCardStateFromStorage();
+  
+  // Escuchar cambios de configuración para actualizar la UI en tiempo real
+  window.addEventListener('card_state_changed', updateCardStateFromStorage);
+  window.addEventListener('storage', (e) => {
+    updateDeviceStatusBadge();
+    if (e.key === 'bankSecureCards') updateCardStateFromStorage();
+  });
 
   // Custom event/listener for device status changes
   const trustDeviceBtn = document.getElementById('trustDeviceBtn');
@@ -1769,14 +1805,21 @@ function setupInteractiveBanking(user) {
   // Block Card button
   if (btnBlockCard) {
     btnBlockCard.addEventListener('click', () => {
-      cardBlocked = true;
-      localStorage.setItem('cardBlockedState', 'true');
+      // Sincronizar bloqueo en Configuración
+      try {
+        const raw = localStorage.getItem('bankSecureCards');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (list && list.length > 0) {
+            list[0].status = 'Bloqueada';
+            localStorage.setItem('bankSecureCards', JSON.stringify(list));
+            window.dispatchEvent(new Event('card_state_changed'));
+          }
+        }
+      } catch (e) {}
+
       faceValidated = false;
 
-      if (statusCardVal) {
-        statusCardVal.textContent = '🛑 Bloqueada';
-        statusCardVal.className = 'status-value val-danger';
-      }
       if (statusFaceVal) {
         statusFaceVal.textContent = 'Pendiente';
         statusFaceVal.className = 'status-value val-pending';
@@ -1807,14 +1850,20 @@ function setupInteractiveBanking(user) {
         showToast('Acción denegada: Requiere rol de Administrador.', 'error');
         return;
       }
-      cardBlocked = false;
-      localStorage.setItem('cardBlockedState', 'false');
+      
+      // Sincronizar reactivación en Configuración
+      try {
+        const raw = localStorage.getItem('bankSecureCards');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (list && list.length > 0) {
+            list[0].status = 'Activa';
+            localStorage.setItem('bankSecureCards', JSON.stringify(list));
+            window.dispatchEvent(new Event('card_state_changed'));
+          }
+        }
+      } catch (e) {}
 
-      if (statusCardVal) {
-        statusCardVal.textContent = '✓ Activa';
-        statusCardVal.className = 'status-value val-success';
-      }
-      updateBalanceAndSecurityUI();
       saveTransaction('Reactivación Tarjeta', null, 'Aprobado');
       showToast('Tarjeta reactivada con éxito', 'success');
       addAuditLog('✓ TARJETA REACTIVADA por el Administrador.', 'val-success');
