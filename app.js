@@ -14,6 +14,110 @@ style.innerHTML = `
 document.head.appendChild(style);
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Apply saved theme and language
+  const savedTheme = localStorage.getItem('userTheme') || 'dark';
+  const savedLang = localStorage.getItem('userLanguage') || 'es';
+
+  if (savedTheme === 'light') {
+    document.body.classList.add('theme-light');
+  } else {
+    document.body.classList.remove('theme-light');
+  }
+
+  const TRANSLATIONS = {
+    es: {
+      login_welcome: "Bienvenido",
+      login_subtitle: "Ingresa tus credenciales de forma segura",
+      login_email: "Correo Electrónico",
+      login_phone: "Número Telefónico",
+      login_password: "Contraseña",
+      login_submit: "Iniciar Sesión",
+      fraud_toggle_btn: "🛡️ Verificación Antifraude",
+      fraud_title: "Motor de Inferencia Antifraude",
+      fraud_desc: "Analiza la transacción ficticia con cámara y reglas expertas.",
+      fraud_amount: "Monto",
+      fraud_hour: "Hora",
+      fraud_loc: "Ubicación actual",
+      fraud_last_loc: "Última compra",
+      fraud_scan: "Escanear Rostro",
+      camera_ready: "Listo para activar la cámara.",
+      risk_waiting: "Esperando evaluación del riesgo…"
+    },
+    en: {
+      login_welcome: "Welcome",
+      login_subtitle: "Enter your credentials securely",
+      login_email: "Email Address",
+      login_phone: "Phone Number",
+      login_password: "Password",
+      login_submit: "Sign In",
+      fraud_toggle_btn: "🛡️ Fraud Verification",
+      fraud_title: "Anti-Fraud Inference Engine",
+      fraud_desc: "Analyzes mock transactions using camera and expert rules.",
+      fraud_amount: "Amount",
+      fraud_hour: "Hour",
+      fraud_loc: "Current Location",
+      fraud_last_loc: "Last Purchase",
+      fraud_scan: "Scan Face",
+      camera_ready: "Ready to activate camera.",
+      risk_waiting: "Waiting for risk evaluation..."
+    }
+  };
+
+  const getValidationMsg = (key, lang) => {
+    const msgs = {
+      es: {
+        email_req: "El correo es requerido.",
+        email_inv: "Formato de correo inválido.",
+        email_long: "El correo es demasiado largo.",
+        pass_req: "La contraseña es requerida.",
+        pass_len: "Debe tener al menos 8 caracteres.",
+        pass_lower: "Debe contener una minúscula.",
+        pass_upper: "Debe contener una mayúscula.",
+        pass_num: "Debe contener un número.",
+        pass_spec: "Debe contener un carácter especial.",
+        phone_err: "Solo se permiten números en este campo.",
+        phone_inv: "Formato o longitud de número inválido para el país.",
+        phone_mismatch: "El número no coincide con el país seleccionado.",
+        phone_region: "Número telefónico inválido para la región seleccionada.",
+        wait_mx: "Espera a la validación del correo o ingresa uno válido.",
+        success_redirect: "Autenticación exitosa. Redirigiendo...",
+        server_error: "Error de conexión con el servidor."
+      },
+      en: {
+        email_req: "Email is required.",
+        email_inv: "Invalid email format.",
+        email_long: "Email is too long.",
+        pass_req: "Password is required.",
+        pass_len: "Must be at least 8 characters.",
+        pass_lower: "Must contain a lowercase letter.",
+        pass_upper: "Must contain an uppercase letter.",
+        pass_num: "Must contain a number.",
+        pass_spec: "Must contain a special character.",
+        phone_err: "Only numbers are allowed in this field.",
+        phone_inv: "Invalid number format or length for this country.",
+        phone_mismatch: "The number does not match the selected country.",
+        phone_region: "Invalid phone number for the selected region.",
+        wait_mx: "Wait for email validation or enter a valid one.",
+        success_redirect: "Authentication successful. Redirecting...",
+        server_error: "Connection error with the server."
+      }
+    };
+    return msgs[lang]?.[key] || msgs.es[key];
+  };
+
+  function applyLanguage(lang) {
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach((el) => {
+      const key = el.getAttribute('data-i18n');
+      if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) {
+        el.textContent = TRANSLATIONS[lang][key];
+      }
+    });
+  }
+
+  applyLanguage(savedLang);
+  window.getValidationMsg = getValidationMsg; // Make accessible globally if needed
+
   // 1. Anti-DevTools & Inspector Protections
   preventDevTools();
 
@@ -104,21 +208,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // 5. Validation Logic
   const validators = {
     email: (value) => {
-      // Regex avanzado que soporta TLDs complejos como .com.hn, .co.uk, etc.
+      const currentLang = localStorage.getItem('userLanguage') || 'es';
       const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
-      if (!value) return "El correo es requerido.";
-      if (!regex.test(value)) return "Formato de correo inválido.";
-      if (value.length > 60) return "El correo es demasiado largo.";
+      if (!value) return getValidationMsg("email_req", currentLang);
+      if (!regex.test(value)) return getValidationMsg("email_inv", currentLang);
+      if (value.length > 60) return getValidationMsg("email_long", currentLang);
       return null;
     },
     password: (value) => {
-      if (!value) return "La contraseña es requerida.";
-      if (value.length < 8) return "Debe tener al menos 8 caracteres.";
-      if (!/(?=.*[a-z])/.test(value)) return "Debe contener una minúscula.";
-      if (!/(?=.*[A-Z])/.test(value)) return "Debe contener una mayúscula.";
-      if (!/(?=.*\d)/.test(value)) return "Debe contener un número.";
-      if (!/(?=.*[\W_])/.test(value))
-        return "Debe contener un carácter especial.";
+      const currentLang = localStorage.getItem('userLanguage') || 'es';
+      if (!value) return getValidationMsg("pass_req", currentLang);
+      if (value.length < 8) return getValidationMsg("pass_len", currentLang);
+      if (!/(?=.*[a-z])/.test(value)) return getValidationMsg("pass_lower", currentLang);
+      if (!/(?=.*[A-Z])/.test(value)) return getValidationMsg("pass_upper", currentLang);
+      if (!/(?=.*\d)/.test(value)) return getValidationMsg("pass_num", currentLang);
+      if (!/(?=.*[\W_])/.test(value)) return getValidationMsg("pass_spec", currentLang);
       return null;
     },
   };
@@ -150,10 +254,11 @@ document.addEventListener("DOMContentLoaded", () => {
       emailCheckTimeout = setTimeout(() => {
         // Simulación de respuesta de backend
         emailLoader.classList.remove("visible");
+        const currentLang = localStorage.getItem('userLanguage') || 'es';
         if (clean === "test@error.com") {
           showError(
             emailError,
-            "Este correo no existe o no puede recibir mensajes.",
+            currentLang === 'en' ? "This email does not exist or cannot receive messages." : "Este correo no existe o no puede recibir mensajes.",
           );
           isEmailValidDeep = false;
         } else {
@@ -169,9 +274,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Permitir solo el signo + al principio y números después.
     const sanitizedValue = originalValue.replace(/(?!^\+)[^\d\s-]/g, "");
 
+    const currentLang = localStorage.getItem('userLanguage') || 'es';
     if (originalValue !== sanitizedValue) {
       e.target.value = sanitizedValue;
-      showError(phoneError, "Solo se permiten números en este campo.");
+      showError(phoneError, getValidationMsg("phone_err", currentLang));
       return;
     }
 
@@ -186,20 +292,21 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       showError(
         phoneError,
-        "Formato o longitud de número inválido para el país.",
+        getValidationMsg("phone_inv", currentLang),
       );
     }
   });
 
   // Re-validar si el usuario cambia el país desde el selector (bandera)
   phoneInput.addEventListener("countrychange", () => {
+    const currentLang = localStorage.getItem('userLanguage') || 'es';
     if (phoneInput.value.trim()) {
       if (iti.isValidNumber()) {
         showError(phoneError, null);
       } else {
         showError(
           phoneError,
-          "El número no coincide con el país seleccionado.",
+          getValidationMsg("phone_mismatch", currentLang),
         );
       }
     }
@@ -358,13 +465,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let hasError = false;
 
+    const currentLang = localStorage.getItem('userLanguage') || 'es';
     if (emailErr) {
       showError(emailError, emailErr);
       hasError = true;
     } else if (!isEmailValidDeep) {
       showError(
         emailError,
-        "Espera a la validación del correo o ingresa uno válido.",
+        getValidationMsg("wait_mx", currentLang),
       );
       hasError = true;
     }
@@ -377,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!iti.isValidNumber()) {
       showError(
         phoneError,
-        "Número telefónico inválido para la región seleccionada.",
+        getValidationMsg("phone_region", currentLang),
       );
       hasError = true;
     }
@@ -404,8 +512,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await response.json();
 
+      const currentLang = localStorage.getItem('userLanguage') || 'es';
       if (response.ok && result.success) {
-        formFeedback.textContent = "Autenticación exitosa. Redirigiendo...";
+        formFeedback.textContent = getValidationMsg("success_redirect", currentLang);
         formFeedback.className = "form-feedback feedback-success";
         localStorage.removeItem("loginAttempts");
 
@@ -421,13 +530,14 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         // Server rejected credentials
         if (result.locked) {
-          disableForm(result.message || "Cuenta bloqueada temporalmente.");
+          disableForm(result.message || (currentLang === 'en' ? "Account temporarily locked." : "Cuenta bloqueada temporalmente."));
         } else {
           handleFailedAttempt(result.message);
         }
       }
     } catch (error) {
-      formFeedback.textContent = "Error de conexión con el servidor.";
+      const currentLang = localStorage.getItem('userLanguage') || 'es';
+      formFeedback.textContent = getValidationMsg("server_error", currentLang);
       formFeedback.className = "form-feedback feedback-error";
       console.error("Login error:", error);
     } finally {

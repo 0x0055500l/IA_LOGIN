@@ -39,8 +39,8 @@
     <div class="login-container">
         <div class="login-header">
             <canvas id="headerCanvasLogo" width="100" height="100"></canvas>
-            <h1>Bienvenido</h1>
-            <p>Ingresa tus credenciales de forma segura</p>
+            <h1 data-i18n="login_welcome">Bienvenido</h1>
+            <p data-i18n="login_subtitle">Ingresa tus credenciales de forma segura</p>
         </div>
 
         <form id="secureLoginForm" novalidate>
@@ -51,7 +51,7 @@
             <input type="hidden" id="csrf_token" name="csrf_token" value="">
 
             <div class="input-group">
-                <label for="email">Correo Electrónico</label>
+                <label for="email" data-i18n="login_email">Correo Electrónico</label>
                 <div class="input-wrapper" style="position: relative;">
                     <input type="email" id="email" name="email" required autocomplete="off" placeholder="tu@correo.com.hn"
                         maxlength="60">
@@ -61,7 +61,7 @@
             </div>
 
             <div class="input-group">
-                <label for="phone">Número Telefónico</label>
+                <label for="phone" data-i18n="login_phone">Número Telefónico</label>
                 <div class="input-wrapper" style="position: relative; width: 100%;">
                     <input type="tel" id="phone" name="phone" required autocomplete="off">
                 </div>
@@ -69,7 +69,7 @@
             </div>
 
             <div class="input-group">
-                <label for="password">Contraseña</label>
+                <label for="password" data-i18n="login_password">Contraseña</label>
                 <div class="password-wrapper">
                     <input type="password" id="password" name="password" required autocomplete="off"
                         placeholder="••••••••" maxlength="64">
@@ -90,7 +90,7 @@
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn">
-                <span class="btn-text">Iniciar Sesión</span>
+                <span class="btn-text" data-i18n="login_submit">Iniciar Sesión</span>
                 <div class="loader" id="btnLoader"></div>
             </button>
 
@@ -100,46 +100,46 @@
         <!-- Antifraude Panel — OUTSIDE the login form, collapsible -->
         <div class="fraud-section">
             <button type="button" id="fraudToggleBtn" class="fraud-toggle-btn">
-                🛡️ Verificación Antifraude
+                <span data-i18n="fraud_toggle_btn">🛡️ Verificación Antifraude</span>
                 <span class="toggle-icon">▼</span>
             </button>
             <div id="fraudPanelWrapper" class="fraud-panel-wrapper">
                 <div class="risk-panel">
                     <div class="risk-panel-header">
-                        <h3>Motor de Inferencia Antifraude</h3>
-                        <p>Analiza la transacción ficticia con cámara y reglas expertas.</p>
+                        <h3 data-i18n="fraud_title">Motor de Inferencia Antifraude</h3>
+                        <p data-i18n="fraud_desc">Analiza la transacción ficticia con cámara y reglas expertas.</p>
                     </div>
 
                     <div class="transaction-grid">
                         <div class="input-group compact">
-                            <label for="amount">Monto</label>
+                            <label for="amount" data-i18n="fraud_amount">Monto</label>
                             <input type="number" id="amount" name="amount" min="1" value="4200">
                         </div>
                         <div class="input-group compact">
-                            <label for="transactionHour">Hora</label>
+                            <label for="transactionHour" data-i18n="fraud_hour">Hora</label>
                             <input type="time" id="transactionHour" name="transactionHour" value="23:30">
                         </div>
                     </div>
 
                     <div class="transaction-grid">
                         <div class="input-group compact">
-                            <label for="location">Ubicación actual</label>
+                            <label for="location" data-i18n="fraud_loc">Ubicación actual</label>
                             <input type="text" id="location" name="location" value="Tegucigalpa">
                         </div>
                         <div class="input-group compact">
-                            <label for="lastLocation">Última compra</label>
+                            <label for="lastLocation" data-i18n="fraud_last_loc">Última compra</label>
                             <input type="text" id="lastLocation" name="lastLocation" value="San Pedro Sula">
                         </div>
                     </div>
 
                     <div class="camera-card">
                         <video id="faceVideo" autoplay playsinline muted></video>
-                        <button type="button" id="scanFaceBtn" class="scan-btn">Escanear Rostro</button>
-                        <div id="cameraStatus" class="camera-status">Listo para activar la cámara.</div>
+                        <button type="button" id="scanFaceBtn" class="scan-btn" data-i18n="fraud_scan">Escanear Rostro</button>
+                        <div id="cameraStatus" class="camera-status" data-i18n="camera_ready">Listo para activar la cámara.</div>
                         <canvas id="captureCanvas" hidden></canvas>
                     </div>
 
-                    <div id="riskSummary" class="risk-summary">Esperando evaluación del riesgo…</div>
+                    <div id="riskSummary" class="risk-summary" data-i18n="risk_waiting">Esperando evaluación del riesgo…</div>
                 </div>
             </div>
         </div>

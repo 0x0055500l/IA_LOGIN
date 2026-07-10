@@ -29,34 +29,34 @@
           </svg>
         </div>
         <div>
-          <h1>BankSecure</h1>
-          <p>Fraude & Riesgo</p>
+          <h1 data-i18n="brand_title">BankSecure</h1>
+          <p data-i18n="brand_subtitle">Fraude & Riesgo</p>
         </div>
       </div>
 
       <nav class="sidebar-nav">
-        <a class="active" href="#">
+        <a class="active" href="#" id="navInicio" data-i18n="nav_inicio">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5" /><path d="M6 10.5V20h12v-9.5" /></svg>
           Inicio
         </a>
-        <a href="#">
+        <a href="#" id="navAnalisis" data-i18n="nav_analisis">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16" /><path d="M7 16V9" /><path d="M12 16V5" /><path d="M17 16v-3" /></svg>
           Análisis
         </a>
-        <a href="#">
+        <a href="#" id="navReglas" data-i18n="nav_reglas">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M7 7v10" /><path d="M12 7v10" /><path d="M17 7v10" /></svg>
           Reglas
         </a>
-        <a href="#">
+        <a href="#" id="navHistorial" data-i18n="nav_historial">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14" /><path d="M7 7v10l5-3 5 3V7" /></svg>
           Historial
         </a>
         <a href="#" id="chatToggleBtn" class="chatbot-nav-btn">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
-          Asistente IA
+          <span data-i18n="nav_asistente">Asistente IA</span>
           <span class="nav-badge-pulse"></span>
         </a>
-        <a href="#">
+        <a href="#" id="navConfig" data-i18n="nav_config">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" /><path d="M3 12h18" /></svg>
           Configuración
         </a>
@@ -64,8 +64,8 @@
 
       <div class="sidebar-footer">
         <div class="mini-card">
-          <strong>Modo experto</strong>
-          <span>Motor de inferencia activo</span>
+          <strong data-i18n="sidebar_footer_title">Modo experto</strong>
+          <span data-i18n="sidebar_footer_subtitle">Motor de inferencia activo</span>
         </div>
       </div>
     </aside>
@@ -73,136 +73,265 @@
     <main class="main-content">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Panel de control</p>
-          <h2>Detección inteligente de fraude</h2>
+          <p class="eyebrow" data-i18n="dashboard_eyebrow">Panel de control</p>
+          <h2 data-i18n="dashboard_title">Detección inteligente de fraude</h2>
         </div>
         <div class="topbar-actions">
-          <div class="status-chip">● En línea</div>
+          <div class="status-chip" id="onlineChip" data-i18n="dashboard_online">● En línea</div>
           <div class="user-pill" id="userPill">Usuario</div>
           <button type="button" id="logoutBtn" class="logout-btn" title="Cerrar sesión">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-            Salir
+            <span data-i18n="logout_btn_text">Salir</span>
           </button>
         </div>
       </header>
 
-      <section class="hero-card">
-        <div>
-          <p class="eyebrow">Análisis bancario</p>
-          <h3>Sistema experto preparado para decisiones de riesgo</h3>
-          <p>La plataforma evalúa transacciones, activa reglas y explica cada conclusión con una lógica clara y auditable.</p>
+      <!-- Container para la vista principal del Dashboard -->
+      <div id="dashboardView" class="view-container">
+        <section class="hero-card">
+          <div>
+            <p class="eyebrow" data-i18n="hero_eyebrow">Análisis bancario</p>
+            <h3 data-i18n="hero_title">Sistema experto preparado para decisiones de riesgo</h3>
+            <p data-i18n="hero_desc">La plataforma evalúa transacciones, activa reglas y explica cada conclusión con una lógica clara y auditable.</p>
+          </div>
+          <div class="hero-badge">
+            <span id="riskBadge">Bajo</span>
+            <small data-i18n="hero_badge_label">Riesgo actual</small>
+          </div>
+        </section>
+
+        <section class="stats-grid">
+          <article class="stat-card">
+            <p data-i18n="stat_monitored">Transacciones monitoreadas</p>
+            <strong>1,284</strong>
+            <span data-i18n="stat_monitored_sub">+12% vs. ayer</span>
+          </article>
+          <article class="stat-card">
+            <p data-i18n="stat_alerts">Alertas activas</p>
+            <strong>24</strong>
+            <span data-i18n="stat_alerts_sub">3 requieren revisión</span>
+          </article>
+          <article class="stat-card">
+            <p data-i18n="stat_accuracy">Precisión del motor</p>
+            <strong>96.8%</strong>
+            <span data-i18n="stat_accuracy_sub">Modelo en evolución</span>
+          </article>
+          <article class="stat-card">
+            <p data-i18n="stat_status">Estado del sistema</p>
+            <strong id="systemState">Operativo</strong>
+            <span data-i18n="stat_status_sub">Sin interrupciones</span>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="panel panel-large">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow" data-i18n="system_status_eyebrow">Estado del sistema</p>
+                <h3 data-i18n="system_status_title">Monitor bancario</h3>
+              </div>
+              <span class="panel-tag" data-i18n="panel_tag_realtime">Tiempo real</span>
+            </div>
+            <div class="system-status">
+              <div class="pulse-dot"></div>
+              <div>
+                <strong data-i18n="status_inference_title">Motor de inferencia activo</strong>
+                <p data-i18n="status_inference_desc">El sistema está evaluando reglas y generando explicaciones para cada decisión.</p>
+              </div>
+            </div>
+            <div class="status-list">
+              <div>
+                <span data-i18n="status_kb">Base de conocimiento</span>
+                <strong id="kbStatusText">8 reglas cargadas</strong>
+              </div>
+              <div>
+                <span data-i18n="status_auth">Autenticación</span>
+                <strong id="authStatus">Verificada</strong>
+              </div>
+              <div>
+                <span data-i18n="status_jwt">Sesión JWT</span>
+                <strong id="sessionStatus" class="jwt-status">🔒 Protegida</strong>
+              </div>
+              <div>
+                <span data-i18n="status_device">Dispositivo</span>
+                <strong id="deviceStatus">Registrado</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow" data-i18n="risk_eyebrow">Nivel de riesgo</p>
+                <h3 data-i18n="risk_title">Riesgo actual</h3>
+              </div>
+            </div>
+            <div class="risk-meter">
+              <div class="risk-value" id="riskValue">Bajo</div>
+              <div class="risk-bar">
+                <span id="riskBar"></span>
+              </div>
+              <p id="riskText">El acceso fue autorizado con una evaluación favorable del contexto.</p>
+            </div>
+          </article>
+
+          <article class="panel panel-large">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow" data-i18n="rules_eyebrow">Motor de inferencia</p>
+                <h3 data-i18n="rules_title">Reglas activadas</h3>
+              </div>
+            </div>
+            <ul class="rule-list" id="ruleList"></ul>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow" data-i18n="explanation_eyebrow">Explicación</p>
+                <h3 data-i18n="explanation_title">Razonamiento del sistema</h3>
+              </div>
+            </div>
+            <p class="explanation" id="explanationText"></p>
+          </article>
+
+          <article class="panel panel-large">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow" data-i18n="events_eyebrow">Historial de eventos</p>
+                <h3 data-i18n="events_title">Últimas acciones</h3>
+              </div>
+            </div>
+            <ul class="event-list" id="eventList"></ul>
+          </article>
+        </section>
+      </div>
+
+      <!-- Vista de Configuración (oculta por defecto) -->
+      <div id="settingsView" class="view-container" style="display: none;">
+        <div class="settings-panel">
+          <!-- Pestañas de configuración (izquierda) -->
+          <div class="settings-tabs">
+            <button type="button" class="settings-tab-btn active" id="btnPerfilTab" onclick="switchSettingsPane('perfilTab')">
+              👤 <span data-i18n="settings_tab_profile">Perfil</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btnIdiomaTab" onclick="switchSettingsPane('idiomaTab')">
+              🌐 <span data-i18n="settings_tab_lang">Idioma</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btnTemaTab" onclick="switchSettingsPane('temaTab')">
+              🎨 <span data-i18n="settings_tab_theme">Tema Visual</span>
+            </button>
+            <button type="button" class="settings-tab-btn" id="btnSeguridadTab" onclick="switchSettingsPane('seguridadTab')">
+              🛡️ <span data-i18n="settings_tab_security">Seguridad</span>
+            </button>
+          </div>
+
+          <!-- Paneles de configuración (derecha) -->
+          <div class="settings-content">
+            <!-- Pestaña Perfil -->
+            <div id="perfilTab" class="settings-pane active">
+              <h3 data-i18n="profile_title">Editar Perfil</h3>
+              <p class="subtitle" data-i18n="profile_subtitle">Actualiza tu nombre y correo electrónico principal de la cuenta.</p>
+              <form id="profileSettingsForm" class="settings-form" novalidate>
+                <div class="settings-group">
+                  <label for="profileName" data-i18n="profile_name">Nombre Completo</label>
+                  <input type="text" id="profileName" name="name" required maxlength="50">
+                </div>
+                <div class="settings-group">
+                  <label for="profileEmail" data-i18n="profile_email">Correo Electrónico</label>
+                  <input type="email" id="profileEmail" name="email" required maxlength="60">
+                </div>
+                <button type="submit" class="settings-submit-btn" data-i18n="save_changes">Guardar cambios</button>
+              </form>
+            </div>
+
+            <!-- Pestaña Idioma -->
+            <div id="idiomaTab" class="settings-pane">
+              <h3 data-i18n="lang_title">Idioma del Sistema</h3>
+              <p class="subtitle" data-i18n="lang_subtitle">Selecciona tu idioma de preferencia para la interfaz y el chatbot.</p>
+              <form id="langSettingsForm" class="settings-form">
+                <div class="settings-group">
+                  <label for="systemLanguage" data-i18n="lang_select">Seleccionar idioma</label>
+                  <select id="systemLanguage" name="language">
+                    <option value="es">Español (ES)</option>
+                    <option value="en">English (EN)</option>
+                  </select>
+                </div>
+                <button type="submit" class="settings-submit-btn" data-i18n="save_changes">Guardar cambios</button>
+              </form>
+            </div>
+
+            <!-- Pestaña Tema -->
+            <div id="temaTab" class="settings-pane">
+              <h3 data-i18n="theme_title">Tema Visual</h3>
+              <p class="subtitle" data-i18n="theme_subtitle">Personaliza el estilo visual de tu espacio de trabajo.</p>
+              <div class="theme-grid">
+                <div class="theme-card active" id="themeDarkCard" onclick="selectVisualTheme('dark')">
+                  <div class="theme-preview dark"></div>
+                  <strong data-i18n="theme_dark">Tema Oscuro</strong>
+                </div>
+                <div class="theme-card" id="themeLightCard" onclick="selectVisualTheme('light')">
+                  <div class="theme-preview light"></div>
+                  <strong data-i18n="theme_light">Tema Claro</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pestaña Seguridad -->
+            <div id="seguridadTab" class="settings-pane">
+              <h3 data-i18n="security_title">Opciones de Seguridad</h3>
+              <p class="subtitle" data-i18n="security_subtitle">Configura tus preferencias de protección y credenciales.</p>
+              
+              <!-- switches -->
+              <div class="switch-container">
+                <div class="switch-info">
+                  <strong data-i18n="security_2fa">Autenticación de dos factores (2FA)</strong>
+                  <span data-i18n="security_2fa_desc">Exige un código OTP temporal en cada inicio de sesión.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="security2faToggle">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="switch-container">
+                <div class="switch-info">
+                  <strong data-i18n="security_strict">Modo de seguridad estricto</strong>
+                  <span data-i18n="security_strict_desc">El sistema experto denegará accesos ante cualquier señal sospechosa.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="securityStrictToggle">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- dispositivo de confianza -->
+              <div class="device-card">
+                <div class="switch-info">
+                  <strong data-i18n="device_trust">Dispositivo de confianza</strong>
+                  <span id="deviceStatusText" data-i18n="device_not_registered">Este dispositivo no está registrado como seguro.</span>
+                </div>
+                <button type="button" id="trustDeviceBtn" class="device-btn" data-i18n="device_register">Registrar dispositivo</button>
+              </div>
+
+              <!-- cambiar contraseña -->
+              <h3 style="margin-top: 30px;" data-i18n="password_change_title">Cambiar Contraseña</h3>
+              <p class="subtitle" data-i18n="password_change_subtitle">Actualiza tu contraseña periódicamente para mantener tu cuenta segura.</p>
+              <form id="passwordSettingsForm" class="settings-form" novalidate>
+                <div class="settings-group">
+                  <label for="currentPassword" data-i18n="password_current">Contraseña Actual</label>
+                  <input type="password" id="currentPassword" name="currentPassword" required>
+                </div>
+                <div class="settings-group">
+                  <label for="newPassword" data-i18n="password_new">Nueva Contraseña</label>
+                  <input type="password" id="newPassword" name="newPassword" required>
+                </div>
+                <button type="submit" class="settings-submit-btn" data-i18n="password_update_btn">Actualizar contraseña</button>
+              </form>
+            </div>
+          </div>
         </div>
-        <div class="hero-badge">
-          <span id="riskBadge">Bajo</span>
-          <small>Riesgo actual</small>
-        </div>
-      </section>
-
-      <section class="stats-grid">
-        <article class="stat-card">
-          <p>Transacciones monitoreadas</p>
-          <strong>1,284</strong>
-          <span>+12% vs. ayer</span>
-        </article>
-        <article class="stat-card">
-          <p>Alertas activas</p>
-          <strong>24</strong>
-          <span>3 requieren revisión</span>
-        </article>
-        <article class="stat-card">
-          <p>Precisión del motor</p>
-          <strong>96.8%</strong>
-          <span>Modelo en evolución</span>
-        </article>
-        <article class="stat-card">
-          <p>Estado del sistema</p>
-          <strong id="systemState">Operativo</strong>
-          <span>Sin interrupciones</span>
-        </article>
-      </section>
-
-      <section class="content-grid">
-        <article class="panel panel-large">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Estado del sistema</p>
-              <h3>Monitor bancario</h3>
-            </div>
-            <span class="panel-tag">Tiempo real</span>
-          </div>
-          <div class="system-status">
-            <div class="pulse-dot"></div>
-            <div>
-              <strong>Motor de inferencia activo</strong>
-              <p>El sistema está evaluando reglas y generando explicaciones para cada decisión.</p>
-            </div>
-          </div>
-          <div class="status-list">
-            <div>
-              <span>Base de conocimiento</span>
-              <strong>6 reglas cargadas</strong>
-            </div>
-            <div>
-              <span>Autenticación</span>
-              <strong id="authStatus">Verificada</strong>
-            </div>
-            <div>
-              <span>Sesión JWT</span>
-              <strong id="sessionStatus" class="jwt-status">🔒 Protegida</strong>
-            </div>
-            <div>
-              <span>Dispositivo</span>
-              <strong id="deviceStatus">Registrado</strong>
-            </div>
-          </div>
-        </article>
-
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Nivel de riesgo</p>
-              <h3>Riesgo actual</h3>
-            </div>
-          </div>
-          <div class="risk-meter">
-            <div class="risk-value" id="riskValue">Bajo</div>
-            <div class="risk-bar">
-              <span id="riskBar"></span>
-            </div>
-            <p id="riskText">El acceso fue autorizado con una evaluación favorable del contexto.</p>
-          </div>
-        </article>
-
-        <article class="panel panel-large">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Motor de inferencia</p>
-              <h3>Reglas activadas</h3>
-            </div>
-          </div>
-          <ul class="rule-list" id="ruleList"></ul>
-        </article>
-
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Explicación</p>
-              <h3>Razonamiento del sistema</h3>
-            </div>
-          </div>
-          <p class="explanation" id="explanationText"></p>
-        </article>
-
-        <article class="panel panel-large">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Historial de eventos</p>
-              <h3>Últimas acciones</h3>
-            </div>
-          </div>
-          <ul class="event-list" id="eventList"></ul>
-        </article>
-      </section>
+      </div>
     </main>
   </div>
 

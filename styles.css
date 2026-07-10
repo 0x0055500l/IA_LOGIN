@@ -610,3 +610,108 @@ body {
 .mini-loader.visible {
     display: block;
 }
+
+/* ─── Tema Claro Premium (Login) ─── */
+body.theme-light {
+    --bg-color: #f8fafc;
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(15, 23, 42, 0.08);
+}
+
+body.theme-light .background-elements {
+    background-color: #f1f5f9;
+}
+
+body.theme-light .login-header h1,
+body.theme-light .login-header h2 {
+    background: linear-gradient(to right, #0f172a, #475569);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.theme-light .input-group input {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+body.theme-light .input-group input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+body.theme-light .password-wrapper button {
+    color: #64748b;
+}
+
+body.theme-light .password-wrapper button:hover {
+    color: #0f172a;
+}
+
+body.theme-light .fraud-toggle-btn {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(15, 23, 42, 0.1);
+    color: #0f172a;
+}
+
+body.theme-light .fraud-toggle-btn:hover {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.2);
+}
+
+body.theme-light .risk-panel {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(15, 23, 42, 0.1);
+}
+
+body.theme-light .camera-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+body.theme-light .camera-status {
+    color: #64748b;
+}
+
+body.theme-light .risk-summary {
+    background: rgba(37, 99, 235, 0.08);
+    color: #1e3a8a;
+}
+
+body.theme-light .risk-summary.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #78350f;
+}
+
+body.theme-light .risk-summary.success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #065f46;
+}
+
+body.theme-light .risk-summary.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #7f1d1d;
+}
+
+body.theme-light .iti__country-list {
+    background-color: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+body.theme-light .iti__country.iti__highlight {
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
+body.theme-light .iti__selected-dial-code {
+    color: #0f172a;
+}
+
+body.theme-light .mini-loader {
+    border-color: rgba(15, 23, 42, 0.1);
+    border-top-color: var(--primary-color);
+}

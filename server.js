@@ -27,6 +27,12 @@ const USERS = [
     password: 'Test1234!',
     name: 'Usuario Demo',
     role: 'user',
+    preferences: {
+      language: 'es',
+      theme: 'dark',
+      twoFactor: false,
+      strictMode: false,
+    },
   },
   {
     id: 2,
@@ -34,6 +40,12 @@ const USERS = [
     password: 'Admin2024!',
     name: 'Administrador',
     role: 'admin',
+    preferences: {
+      language: 'es',
+      theme: 'dark',
+      twoFactor: false,
+      strictMode: false,
+    },
   },
 ];
 
@@ -186,13 +198,23 @@ app.post('/api/login', (req, res) => {
 
 // Session validation — protected route
 app.get('/api/session', authenticateToken, (req, res) => {
+  const user = USERS.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ valid: false, message: 'Usuario no encontrado.' });
+  }
   res.json({
     valid: true,
     user: {
-      id: req.user.id,
-      email: req.user.email,
-      name: req.user.name,
-      role: req.user.role,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      preferences: user.preferences || {
+        language: 'es',
+        theme: 'dark',
+        twoFactor: false,
+        strictMode: false,
+      },
     },
     expiresAt: new Date(req.user.exp * 1000).toISOString(),
   });
@@ -214,6 +236,113 @@ app.post('/api/logout', authenticateToken, (req, res) => {
   }
 
   res.json({ success: true, message: 'Sesión cerrada exitosamente.' });
+});
+
+// ─── User Profile & Settings Endpoints ───
+
+// Update profile: Name and Email
+app.put('/api/user/profile', authenticateToken, (req, res) => {
+  const { name, email } = req.body;
+  if (!name || name.trim().length === 0) {
+    return res.status(400).json({ success: false, message: 'El nombre es requerido.' });
+  }
+  if (!email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/.test(email)) {
+    return res.status(400).json({ success: false, message: 'Formato de correo electrónico inválido.' });
+  }
+
+  const user = USERS.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+  }
+
+  // Check if email is already taken
+  const emailExists = USERS.some((u) => u.id !== user.id && u.email.toLowerCase() === email.toLowerCase());
+  if (emailExists) {
+    return res.status(400).json({ success: false, message: 'El correo electrónico ya está en uso.' });
+  }
+
+  user.name = name.trim();
+  user.email = email.toLowerCase().trim();
+
+  // Create a new JWT token with updated user information
+  const tokenPayload = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  };
+
+  const token = jwt.sign(tokenPayload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRATION,
+    issuer: 'banksecure-expert-system',
+  });
+
+  res.json({
+    success: true,
+    message: 'Perfil actualizado con éxito.',
+    token,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+  });
+});
+
+// Update preferences: Language, Theme, 2FA, Strict Mode
+app.put('/api/user/preferences', authenticateToken, (req, res) => {
+  const { language, theme, twoFactor, strictMode } = req.body;
+
+  if (language && !['es', 'en'].includes(language)) {
+    return res.status(400).json({ success: false, message: 'Idioma no disponible.' });
+  }
+  if (theme && !['dark', 'light'].includes(theme)) {
+    return res.status(400).json({ success: false, message: 'Tema visual no disponible.' });
+  }
+
+  const user = USERS.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+  }
+
+  user.preferences = {
+    language: language || user.preferences.language,
+    theme: theme || user.preferences.theme,
+    twoFactor: twoFactor !== undefined ? Boolean(twoFactor) : user.preferences.twoFactor,
+    strictMode: strictMode !== undefined ? Boolean(strictMode) : user.preferences.strictMode,
+  };
+
+  res.json({
+    success: true,
+    message: 'Preferencias actualizadas con éxito.',
+    preferences: user.preferences,
+  });
+});
+
+// Update security: Change Password
+app.put('/api/user/password', authenticateToken, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: 'La contraseña actual y la nueva son requeridas.' });
+  }
+
+  const user = USERS.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+  }
+
+  if (user.password !== currentPassword) {
+    return res.status(400).json({ success: false, message: 'La contraseña actual es incorrecta.' });
+  }
+
+  // Password validation: min 8 length, upper, lower, number, special char
+  const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  if (!passRegex.test(newPassword)) {
+    return res.status(400).json({
+      success: false,
+      message: 'La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.',
+    });
+  }
+
+  user.password = newPassword;
+  res.json({ success: true, message: 'Contraseña actualizada con éxito.' });
 });
 
 // Chatbot endpoint — processes messages using expert system rules

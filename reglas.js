@@ -2,56 +2,106 @@ const BASE_CONOCIMIENTO = [
   {
     id: 'R1',
     nombre: 'Acceso permitido',
+    nombreEn: 'Access allowed',
     condicion: 'El usuario introduce correctamente el correo electrónico y la contraseña',
+    condicionEn: 'The user correctly enters the email and password',
     accion: 'Permitir el acceso al Sistema Experto',
+    accionEn: 'Allow access to the Expert System',
     tipo: 'autenticacion',
     prioridad: 1,
-    explicacion: 'Si las credenciales ingresadas son válidas, el sistema autoriza el acceso.'
+    explicacion: 'Si las credenciales ingresadas son válidas, el sistema autoriza el acceso.',
+    explicacionEn: 'If the credentials entered are valid, the system authorizes access.'
   },
   {
     id: 'R2',
     nombre: 'Intento fallido',
+    nombreEn: 'Failed attempt',
     condicion: 'La contraseña es incorrecta',
+    condicionEn: 'The password is incorrect',
     accion: 'Aumentar el contador de intentos fallidos',
+    accionEn: 'Increment the failed attempts counter',
     tipo: 'seguridad',
     prioridad: 2,
-    explicacion: 'Cada contraseña incorrecta incrementa la señal de riesgo de autenticación.'
+    explicacion: 'Cada contraseña incorrecta incrementa la señal de riesgo de autenticación.',
+    explicacionEn: 'Each incorrect password increases the authentication risk signal.'
   },
   {
     id: 'R3',
     nombre: 'Bloqueo temporal',
+    nombreEn: 'Temporary lockout',
     condicion: 'Existen tres intentos fallidos consecutivos',
+    condicionEn: 'There are three consecutive failed attempts',
     accion: 'Bloquear temporalmente la cuenta durante 15 minutos',
+    accionEn: 'Temporarily block the account for 15 minutes',
     tipo: 'seguridad',
     prioridad: 3,
-    explicacion: 'Tras tres intentos fallidos, la cuenta entra en un bloqueo temporal para protegerla.'
+    explicacion: 'Tras tres intentos fallidos, la cuenta entra en un bloqueo temporal para protegerla.',
+    explicacionEn: 'After three failed attempts, the account enters a temporary block to protect it.'
   },
   {
     id: 'R4',
     nombre: 'Bloqueo total',
+    nombreEn: 'Total lockout',
     condicion: 'Existen cinco intentos fallidos consecutivos',
+    condicionEn: 'There are five consecutive failed attempts',
     accion: 'Bloquear completamente la cuenta hasta que sea habilitada por un administrador',
+    accionEn: 'Completely block the account until enabled by an admin',
     tipo: 'seguridad',
     prioridad: 4,
-    explicacion: 'Cinco intentos fallidos consecutivos indican un riesgo alto y requieren bloqueo total.'
+    explicacion: 'Cinco intentos fallidos consecutivos indican un riesgo alto y requieren bloqueo total.',
+    explicacionEn: 'Five consecutive failed attempts indicate high risk and require total lockout.'
   },
   {
     id: 'R5',
     nombre: 'Dispositivo reconocido',
+    nombreEn: 'Recognized device',
     condicion: 'El usuario inicia sesión desde un dispositivo previamente registrado',
+    condicionEn: 'The user logs in from a previously registered device',
     accion: 'Disminuir el nivel de riesgo',
+    accionEn: 'Decrease risk level',
     tipo: 'contexto',
     prioridad: 5,
-    explicacion: 'Un dispositivo conocido reduce la probabilidad de actividad fraudulenta.'
+    explicacion: 'Un dispositivo conocido reduce la probabilidad de actividad fraudulenta.',
+    explicacionEn: 'A known device reduces the probability of fraudulent activity.'
   },
   {
     id: 'R6',
     nombre: 'Dispositivo desconocido',
+    nombreEn: 'Unknown device',
     condicion: 'El usuario inicia sesión desde un dispositivo desconocido',
+    condicionEn: 'The user logs in from an unknown device',
     accion: 'Solicitar una autenticación adicional antes de permitir el acceso al sistema',
+    accionEn: 'Request additional authentication before allowing access',
     tipo: 'contexto',
     prioridad: 6,
-    explicacion: 'Un dispositivo nuevo exige una verificación extra para proteger la cuenta.'
+    explicacion: 'Un dispositivo nuevo exige una verificación extra para proteger la cuenta.',
+    explicacionEn: 'A new device requires extra verification to protect the account.'
+  },
+  {
+    id: 'R7',
+    nombre: 'Doble factor obligatorio',
+    nombreEn: 'MFA Mandatory',
+    condicion: 'El usuario tiene activa la autenticación de dos factores (2FA)',
+    condicionEn: 'User has multi-factor authentication (MFA/2FA) enabled',
+    accion: 'Solicitar código OTP de manera obligatoria',
+    accionEn: 'Force OTP verification code entry',
+    tipo: 'seguridad',
+    prioridad: 7,
+    explicacion: 'La configuración del perfil exige un segundo factor de autenticación para validar la identidad del usuario.',
+    explicacionEn: 'The profile settings require a second authentication factor to validate the user\'s identity.'
+  },
+  {
+    id: 'R8',
+    nombre: 'Seguridad estricta activa',
+    nombreEn: 'Strict Security Mode',
+    condicion: 'El modo estricto está activo y existe alguna sospecha o anomalía',
+    condicionEn: 'Strict mode is active and any anomaly or warning is detected',
+    accion: 'Elevar riesgo a Alto y bloquear o restringir acceso',
+    accionEn: 'Escalate risk to High and deny or restrict access',
+    tipo: 'seguridad',
+    prioridad: 8,
+    explicacion: 'Bajo el modo de seguridad estricto, cualquier señal menor de riesgo se penaliza con el máximo nivel y restricción.',
+    explicacionEn: 'Under strict security mode, any minor risk signal is penalized with the maximum level and restriction.'
   }
 ];
 
