@@ -1880,10 +1880,9 @@ function setupInteractiveBanking(user) {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
-      if (cardBlocked) {
-          // Facial validation not available when card is blocked
-          showToast('Validación facial no disponible: tarjeta bloqueada', 'error');
-          addAuditLog('Validación facial no disponible: tarjeta bloqueada', 'val-danger');
+      if (cardBlocked || (typeof _cardIsPending === 'function' && _cardIsPending())) {
+          showToast('Transacción no disponible: tarjeta bloqueada o pendiente', 'error');
+          addAuditLog('Transacción denegada: tarjeta no está activa', 'val-danger');
           saveTransaction('Simulación Compra', amountVal, 'Denegado');
           return;
         }
@@ -1944,10 +1943,10 @@ function setupInteractiveBanking(user) {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
-      if (cardBlocked) {
-          // Facial validation not available when card is blocked
-          showToast('Validación facial no disponible: tarjeta bloqueada', 'error');
-          addAuditLog('Validación facial no disponible: tarjeta bloqueada', 'val-danger');
+      if (cardBlocked || (typeof _cardIsPending === 'function' && _cardIsPending())) {
+          // Facial validation not available when card is blocked or pending
+          showToast('Validación facial no disponible: tarjeta bloqueada o pendiente', 'error');
+          addAuditLog('Validación facial no disponible: tarjeta bloqueada o pendiente', 'val-danger');
           saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
           return;
         }
