@@ -391,6 +391,9 @@ function initializeDashboard(user, expiresAt) {
   // Register Settings Handlers
   setupSettingsHandlers(user, expiresAt);
 
+  // Setup Interactive Banking Widget
+  setupInteractiveBanking(user);
+
   // Display user info in topbar
   if (userPill) userPill.textContent = user.name || user.email;
 
@@ -992,3 +995,227 @@ function showProfileFeedback(message, type) {
 // Exponer globalmente para uso externo (app.js u otros módulos)
 window.guardarPerfil = guardarPerfil;
 window.showProfileFeedback = showProfileFeedback;
+
+// ─── Setup Interactive Banking ───
+function setupInteractiveBanking(user) {
+  const cardNumber = document.getElementById('cardNumber');
+  const cardExpiry = document.getElementById('cardExpiry');
+  const cardCvv = document.getElementById('cardCvv');
+  const btnEvaluateFace = document.getElementById('btnEvaluateFace');
+  const faceScannerView = document.getElementById('faceScannerView');
+  const scannerStatusText = document.getElementById('scannerStatusText');
+  const btnValidateAccess = document.getElementById('btnValidateAccess');
+  const btnBlockCard = document.getElementById('btnBlockCard');
+  const btnReviewAlerts = document.getElementById('btnReviewAlerts');
+
+  const statusCardVal = document.getElementById('statusCardVal');
+  const statusFaceVal = document.getElementById('statusFaceVal');
+  const statusDeviceVal = document.getElementById('statusDeviceVal');
+  const bankingRiskAlert = document.getElementById('bankingRiskAlert');
+  const bankingAuditList = document.getElementById('bankingAuditList');
+
+  let faceValidated = false;
+  let cardBlocked = false;
+
+  // Helper to log in local audit log
+  function addAuditLog(text, type = '') {
+    if (!bankingAuditList) return;
+    const li = document.createElement('li');
+    li.className = `audit-item ${type}`;
+    const time = new Date().toLocaleTimeString();
+    li.textContent = `[${time}] ${text}`;
+    bankingAuditList.prepend(li);
+  }
+
+  // Auto-update device trust card on load
+  function updateDeviceStatusBadge() {
+    if (!statusDeviceVal) return;
+    const isTrusted = localStorage.getItem('registeredDevice') === 'true';
+    if (isTrusted) {
+      statusDeviceVal.textContent = '✓ Seguro';
+      statusDeviceVal.className = 'status-value val-success';
+      if (bankingRiskAlert) bankingRiskAlert.style.display = 'none';
+    } else {
+      statusDeviceVal.textContent = '✗ No Confiable';
+      statusDeviceVal.className = 'status-value val-danger';
+      if (bankingRiskAlert) bankingRiskAlert.style.display = 'flex';
+    }
+  }
+  updateDeviceStatusBadge();
+
+  // Listen to storage changes to keep device status updated
+  window.addEventListener('storage', updateDeviceStatusBadge);
+
+  // Custom event/listener for device status changes
+  const trustDeviceBtn = document.getElementById('trustDeviceBtn');
+  if (trustDeviceBtn) {
+    trustDeviceBtn.addEventListener('click', () => {
+      setTimeout(updateDeviceStatusBadge, 100);
+    });
+  }
+
+  // Format card number
+  if (cardNumber) {
+    cardNumber.addEventListener('input', (e) => {
+      let value = e.target.value.replace(/\D/g, '');
+      let formatted = '';
+      for (let i = 0; i < value.length; i++) {
+        if (i > 0 && i % 4 === 0) formatted += ' ';
+        formatted += value[i];
+      }
+      e.target.value = formatted;
+    });
+  }
+
+  // Format card expiry
+  if (cardExpiry) {
+    cardExpiry.addEventListener('input', (e) => {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 2) {
+        e.target.value = value.substring(0, 2) + '/' + value.substring(2, 4);
+      } else {
+        e.target.value = value;
+      }
+    });
+  }
+
+  // Biometric Scanner simulation
+  if (btnEvaluateFace && faceScannerView) {
+    btnEvaluateFace.addEventListener('click', () => {
+      if (cardBlocked) {
+        showToast('La tarjeta está bloqueada.', 'error');
+        return;
+      }
+      faceScannerView.className = 'face-scanner-view scanning';
+      btnEvaluateFace.disabled = true;
+      if (scannerStatusText) scannerStatusText.textContent = 'Analizando rostro...';
+      addAuditLog('Iniciando análisis facial biométrico...', 'text-muted');
+
+      setTimeout(() => {
+        faceScannerView.className = 'face-scanner-view scanned';
+        btnEvaluateFace.disabled = false;
+        faceValidated = true;
+        if (scannerStatusText) scannerStatusText.textContent = '✓ Rostro verificado';
+        if (statusFaceVal) {
+          statusFaceVal.textContent = '✓ Aprobado';
+          statusFaceVal.className = 'status-value val-success';
+        }
+        addAuditLog('Biometría facial: Rostro VALIDADO correctamente.', 'val-success');
+        showToast('Biometría facial verificada', 'success');
+      }, 1500);
+    });
+  }
+
+  // Validate access button
+  if (btnValidateAccess) {
+    btnValidateAccess.addEventListener('click', async () => {
+      if (cardBlocked) {
+        showToast('Operación denegada: Tarjeta bloqueada.', 'error');
+        addAuditLog('Intento de acceso denegado: Tarjeta bloqueada.', 'val-danger');
+        return;
+      }
+
+      const cardNumVal = cardNumber ? cardNumber.value.replace(/\s/g, '') : '';
+      const expiryVal = cardExpiry ? cardExpiry.value : '';
+      const cvvVal = cardCvv ? cardCvv.value : '';
+
+      // Validate device status
+      const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+      if (!isDeviceTrusted) {
+        if (bankingRiskAlert) bankingRiskAlert.style.display = 'flex';
+        showToast('Acceso Denegado: Dispositivo no seguro.', 'error');
+        addAuditLog('ALERTA: Transacción Bloqueada (Dispositivo No Confiable)', 'val-danger');
+        if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+          window.registrarAccion('acceso_bancario_bloqueado', 'error', { razon: 'Dispositivo no confiable' });
+        }
+        return;
+      }
+
+      // Validate Card Details
+      const isCardValid = cardNumVal.length === 16 && expiryVal.length === 5 && cvvVal.length === 3;
+      if (!isCardValid) {
+        if (statusCardVal) {
+          statusCardVal.textContent = '✗ Incorrecta';
+          statusCardVal.className = 'status-value val-danger';
+        }
+        showToast('Datos de tarjeta incorrectos.', 'error');
+        addAuditLog('Error: Formato de tarjeta inválido.', 'val-danger');
+        return;
+      }
+
+      // Validate Face biometrics
+      if (!faceValidated) {
+        showToast('Falta autenticación facial.', 'error');
+        addAuditLog('Acceso denegado: Rostro pendiente de verificación.', 'val-danger');
+        return;
+      }
+
+      // All tests passed!
+      if (statusCardVal) {
+        statusCardVal.textContent = '✓ Validada';
+        statusCardVal.className = 'status-value val-success';
+      }
+      showToast('Acceso Bancario Autorizado', 'success');
+      addAuditLog('¡ACCESO AUTORIZADO! Validación de tarjeta, rostro y dispositivo aprobada.', 'val-success');
+
+      // Log to global system history
+      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+        window.registrarAccion('acceso_bancario_validado', 'exito', { user: user.email });
+      }
+    });
+  }
+
+  // Block Card button
+  if (btnBlockCard) {
+    btnBlockCard.addEventListener('click', () => {
+      cardBlocked = true;
+      faceValidated = false;
+      if (statusCardVal) {
+        statusCardVal.textContent = '🛑 Bloqueada';
+        statusCardVal.className = 'status-value val-danger';
+      }
+      if (statusFaceVal) {
+        statusFaceVal.textContent = 'Pendiente';
+        statusFaceVal.className = 'status-value val-pending';
+      }
+      if (faceScannerView) {
+        faceScannerView.className = 'face-scanner-view';
+        if (scannerStatusText) scannerStatusText.textContent = 'Escaneo cancelado';
+      }
+      if (cardNumber) cardNumber.value = '';
+      if (cardExpiry) cardExpiry.value = '';
+      if (cardCvv) cardCvv.value = '';
+
+      showToast('Tarjeta Bloqueada Correctamente', 'success');
+      addAuditLog('🛑 TARJETA BLOQUEADA por el usuario. Acciones inhabilitadas.', 'val-danger');
+
+      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+        window.registrarAccion('tarjeta_bloqueada', 'advertencia', { user: user.email });
+      }
+    });
+  }
+
+  // Review Alerts button
+  if (btnReviewAlerts) {
+    btnReviewAlerts.addEventListener('click', () => {
+      const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+      if (!isDeviceTrusted) {
+        if (bankingRiskAlert) {
+          bankingRiskAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          bankingRiskAlert.style.animation = 'pulse 1s infinite alternate';
+          setTimeout(() => {
+            bankingRiskAlert.style.animation = '';
+          }, 3000);
+        }
+        showToast('Alerta Activa: Dispositivo no confiable.', 'error');
+        addAuditLog('Revisión de Alertas: Detectado dispositivo no seguro.', 'val-danger');
+      } else if (cardBlocked) {
+        showToast('Alerta Activa: Tarjeta bloqueada.', 'error');
+        addAuditLog('Revisión de Alertas: La tarjeta se encuentra en estado BLOQUEADO.', 'val-danger');
+      } else {
+        showToast('No hay alertas críticas activas.', 'success');
+        addAuditLog('Revisión de Alertas: Sin amenazas detectadas.', 'val-success');
+      }
+    });
+  }
+}

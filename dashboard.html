@@ -125,6 +125,94 @@
         </section>
 
         <section class="content-grid">
+          <!-- Panel de Control Interactivo Bancario -->
+          <article class="panel panel-large interactive-banking-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Seguridad de Transacciones</p>
+                <h3>Validación y Autenticación Biométrica</h3>
+              </div>
+              <span class="panel-tag status-secure">● Operativo y Auditable</span>
+            </div>
+
+            <!-- Alerta de riesgo (Dispositivo no confiable) -->
+            <div id="bankingRiskAlert" class="banking-alert-banner alert-danger" style="display: none;">
+              <span class="alert-icon">⚠️</span>
+              <div class="alert-content">
+                <strong>Dispositivo No Registrado o No Confiable</strong>
+                <p>Las transacciones han sido bloqueadas. Por favor, registre este dispositivo desde la sección de Configuración para continuar.</p>
+              </div>
+            </div>
+
+            <div class="banking-grid">
+              <!-- Bloque 1: Ingreso de Tarjeta -->
+              <div class="banking-block card-entry-block">
+                <h4 class="block-title">💳 Datos de la Tarjeta</h4>
+                <div class="card-inputs">
+                  <div class="input-field">
+                    <label for="cardNumber">Número de Tarjeta</label>
+                    <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="off">
+                  </div>
+                  <div class="card-row">
+                    <div class="input-field">
+                      <label for="cardExpiry">Vencimiento</label>
+                      <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" autocomplete="off">
+                    </div>
+                    <div class="input-field">
+                      <label for="cardCvv">CVV</label>
+                      <input type="password" id="cardCvv" placeholder="•••" maxlength="3" autocomplete="off">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bloque 2: Autenticación Biométrica (Rostro) -->
+              <div class="banking-block face-auth-block">
+                <h4 class="block-title">👤 Validación Facial (Biométrica)</h4>
+                <div class="face-scanner-container">
+                  <div class="face-scanner-view" id="faceScannerView">
+                    <!-- Overlay de escaneo -->
+                    <div class="scanner-laser"></div>
+                    <div class="scanner-face-icon">👤</div>
+                    <div class="scanner-status-text" id="scannerStatusText">Listo para escanear</div>
+                  </div>
+                  <button type="button" id="btnEvaluateFace" class="banking-btn btn-secondary">Evaluar Rostro</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloques de Estado de Seguridad (Cards de Estado) -->
+            <div class="security-status-row">
+              <div class="status-card-item">
+                <span class="status-label">Estado Tarjeta</span>
+                <strong id="statusCardVal" class="status-value val-pending">Pendiente</strong>
+              </div>
+              <div class="status-card-item">
+                <span class="status-label">Biometría Facial</span>
+                <strong id="statusFaceVal" class="status-value val-pending">Pendiente</strong>
+              </div>
+              <div class="status-card-item">
+                <span class="status-label">Estado Dispositivo</span>
+                <strong id="statusDeviceVal" class="status-value val-pending">Verificando...</strong>
+              </div>
+            </div>
+
+            <!-- Acciones Disponibles -->
+            <div class="banking-actions">
+              <button type="button" id="btnValidateAccess" class="banking-btn btn-primary">Validar acceso</button>
+              <button type="button" id="btnBlockCard" class="banking-btn btn-danger">Bloquear tarjeta</button>
+              <button type="button" id="btnReviewAlerts" class="banking-btn btn-warning">Revisar alertas</button>
+            </div>
+
+            <!-- Bitácora de Auditoría local -->
+            <div class="audit-log-box">
+              <span class="audit-title">Registro de Auditoría (Local)</span>
+              <ul class="audit-list" id="bankingAuditList">
+                <li class="audit-item">Esperando validación de tarjeta...</li>
+              </ul>
+            </div>
+          </article>
+
           <article class="panel panel-large">
             <div class="panel-header">
               <div>
