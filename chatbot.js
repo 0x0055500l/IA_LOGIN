@@ -555,13 +555,20 @@
 
     showTypingIndicator();
 
-    const response = processMessage(message);
+    const { intent, handler } = detectIntent(message);
+    const response = handler(message);
     const delay = Math.min(300 + response.length * 2, 1200);
 
     await new Promise((r) => setTimeout(r, delay));
 
     hideTypingIndicator();
     addMessage(response, 'bot');
+
+    // Registrar consulta en el historial del sistema
+    if (window.registrarChat && typeof window.registrarChat === 'function') {
+      const resultado = intent === 'unknown' ? 'desconocido' : 'respondido';
+      window.registrarChat(message, response, intent, resultado);
+    }
   }
 
   function toggleChat() {
