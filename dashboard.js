@@ -1237,6 +1237,8 @@ function setupInteractiveBanking(user) {
           if (scannerStatusText) scannerStatusText.textContent = '✓ Rostro verificado';
           addAuditLog('Biometría facial: Rostro VALIDADO correctamente.', 'val-success');
           showToast('Biometría facial verificada', 'success');
+          // Update scanner view to indicate success
+          if (faceScannerView) faceScannerView.className = 'face-scanner-view scanned';
         } else {
           if (statusFaceVal) {
             statusFaceVal.textContent = '✗ Rechazado';
@@ -1244,7 +1246,9 @@ function setupInteractiveBanking(user) {
           }
           if (scannerStatusText) scannerStatusText.textContent = '✗ Rostro no verificado';
           addAuditLog('Biometría facial: Rostro NO VALIDADO.', 'val-danger');
-          showToast('Biometría facial falló', 'error');
+          showToast('Biometría facial falló: intente nuevamente', 'error');
+          // Keep scanner view in scanning state to allow retry
+          if (faceScannerView) faceScannerView.className = 'face-scanner-view scanning';
         }
       } catch (err) {
         console.error(err);
