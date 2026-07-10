@@ -1392,11 +1392,12 @@ function setupInteractiveBanking(user) {
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
       if (cardBlocked) {
-        showToast('Transacción denegada: Tarjeta bloqueada.', 'error');
-        addAuditLog('Compra denegada: Tarjeta bloqueada.', 'val-danger');
-        saveTransaction('Simulación Compra', amountVal, 'Denegado');
-        return;
-      }
+          // Facial validation not available when card is blocked
+          showToast('Validación facial no disponible: tarjeta bloqueada', 'error');
+          addAuditLog('Validación facial no disponible: tarjeta bloqueada', 'val-danger');
+          saveTransaction('Simulación Compra', amountVal, 'Denegado');
+          return;
+        }
       if (!isDeviceTrusted) {
           // Requerir autenticación biométrica obligatoria para dispositivos no confiables
           showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
@@ -1415,11 +1416,12 @@ function setupInteractiveBanking(user) {
           addAuditLog('Validación facial exitosa, dispositivo ahora confiable', 'val-success');
         }
       if (!faceValidated) {
-        showToast('Transacción denegada: Falta biometría facial.', 'error');
-        addAuditLog('Compra denegada: Falta biometría facial.', 'val-danger');
-        saveTransaction('Simulación Compra', amountVal, 'Denegado');
-        return;
-      }
+          // Facial validation failed
+          showToast('Validación facial fallida, acceso denegado', 'error');
+          addAuditLog('Validación facial fallida, acceso denegado', 'val-danger');
+          saveTransaction('Simulación Compra', amountVal, 'Denegado');
+          return;
+        }
       if (amountVal > 2000.00) {
         showToast('Denegada: Excede límite de compra ($2,000.00)', 'error');
         addAuditLog('Compra denegada: Excede límite de compra.', 'val-danger');
@@ -1454,11 +1456,12 @@ function setupInteractiveBanking(user) {
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
 
       if (cardBlocked) {
-        showToast('Transferencia denegada: Tarjeta bloqueada.', 'error');
-        addAuditLog('Transferencia denegada: Tarjeta bloqueada.', 'val-danger');
-        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-        return;
-      }
+          // Facial validation not available when card is blocked
+          showToast('Validación facial no disponible: tarjeta bloqueada', 'error');
+          addAuditLog('Validación facial no disponible: tarjeta bloqueada', 'val-danger');
+          saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+          return;
+        }
       if (!isDeviceTrusted) {
           // Requerir autenticación biométrica obligatoria para dispositivos no confiables
           showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
@@ -1477,11 +1480,12 @@ function setupInteractiveBanking(user) {
           addAuditLog('Validación facial exitosa, dispositivo ahora confiable', 'val-success');
         }
       if (!faceValidated) {
-        showToast('Transferencia denegada: Falta biometría facial.', 'error');
-        addAuditLog('Transferencia denegada: Falta biometría facial.', 'val-danger');
-        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-        return;
-      }
+          // Facial validation failed
+          showToast('Validación facial fallida, acceso denegado', 'error');
+          addAuditLog('Validación facial fallida, acceso denegado', 'val-danger');
+          saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
+          return;
+        }
       if (amountVal > 1500.00) {
         showToast('Denegada: Excede límite de transferencia ($1,500.00)', 'error');
         addAuditLog('Transferencia denegada: Excede límite.', 'val-danger');
