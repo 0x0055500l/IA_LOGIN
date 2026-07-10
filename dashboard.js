@@ -509,7 +509,7 @@ const DEFAULT_CARD = {
   number: '4111 1111 1111 1111',
   expiry: '11/28',
   cvv: '123',
-  status: 'Pendiente', // Starts as Pendiente (unactivated)
+  status: 'Activa', // Tarjeta activa por defecto (proyecto académico)
   isDefault: true
 };
 
@@ -518,7 +518,13 @@ function getCards() {
     const raw = localStorage.getItem(CARDS_KEY);
     if (!raw) return [{ ...DEFAULT_CARD }];
     const list = JSON.parse(raw);
-    return list.length ? list : [{ ...DEFAULT_CARD }];
+    if (!list.length) return [{ ...DEFAULT_CARD }];
+    // Migración: si la tarjeta principal estaba en Pendiente, actualizar a Activa
+    if (list[0] && list[0].status === 'Pendiente') {
+      list[0].status = 'Activa';
+      localStorage.setItem(CARDS_KEY, JSON.stringify(list));
+    }
+    return list;
   } catch {
     return [{ ...DEFAULT_CARD }];
   }
@@ -1680,15 +1686,26 @@ function setupInteractiveBanking(user) {
         if (video) {
           video.style.display = 'block';
         }
-        setFacialStatus('Analizando rostro...', 'pending');
+        setFacialStatus('Activando cámara...', 'pending');
         addAuditLog('Iniciando análisis facial mediante backend...', 'text-muted');
 
-        const canvas = document.getElementById('captureCanvas');
-        if (canvas) {
-          canvas.width = video ? (video.videoWidth || 320) : 320;
-          canvas.height = video ? (video.videoHeight || 240) : 240;
-          if (video) canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-        }
+        // Esperar a que el video tenga frames reales (videoWidth > 0)
+        await new Promise((resolve) => {
+          let tries = 0;
+          const checkVideo = () => {
+            if (video && video.videoWidth > 0 && video.readyState >= 2) {
+              resolve();
+            } else if (tries < 40) { // máximo 2 segundos de espera
+              tries++;
+              setTimeout(checkVideo, 50);
+            } else {
+              resolve(); // continuar de todas formas
+            }
+          };
+          checkVideo();
+        });
+
+        setFacialStatus('Analizando rostro...', 'pending');
         const frameData = captureFrame();
         const payload = { faceImage: frameData, faceVerified: false };
 

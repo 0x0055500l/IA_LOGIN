@@ -15,7 +15,7 @@ const JWT_EXPIRATION = '1h'; // Token expires in 1 hour
 
 // Token blacklist (for logout - in production, use Redis)
 const tokenBlacklist = new Set();
-const FACE_MATCH_THRESHOLD = 0.12;
+const FACE_MATCH_THRESHOLD = 0.40; // Umbral de similitud facial (0-1). 0.40 = tolerante a variaciones de luz/posición
 const REGISTERED_FACE_SIGNATURES = new Map();
 
 app.use(cors());
