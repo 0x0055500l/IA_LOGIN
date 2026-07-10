@@ -68,6 +68,39 @@
   }
 }
 
+/* Light mode overrides (both class and media query) */
+body.theme-light .hist-tab {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #2d3748;
+}
+body.theme-light .hist-tab:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1a202c;
+}
+body.theme-light .hist-tab.active {
+  background: #004c6d;
+  color: #ffffff;
+  border-color: #00608c;
+}
+
+@media (prefers-color-scheme: light) {
+  .hist-tab {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #2d3748;
+  }
+  .hist-tab:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #1a202c;
+  }
+  .hist-tab.active {
+    background: #004c6d;
+    color: #ffffff;
+    border-color: #00608c;
+  }
+}
+
 .historial-filters { display:flex; gap:8px; align-items:center; }
 .hist-filter-group { display:flex; flex-direction:column; }
 .hist-input { padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.02); color:var(--text); }
