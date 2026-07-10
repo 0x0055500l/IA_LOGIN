@@ -51,24 +51,7 @@
   border-color: #00608c;
 }
 
-@media (prefers-color-scheme: dark) {
-  .hist-tab {
-    background: rgba(255, 255, 255, 0.08);
-    color: #e2e8f0;
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-  .hist-tab:hover {
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-  }
-  .hist-tab.active {
-    background: #004c6d;
-    color: #ffffff;
-    border-color: #00608c;
-  }
-}
-
-/* Light mode overrides (both class and media query) */
+/* Light mode override based on body class */
 body.theme-light .hist-tab {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.1);
@@ -82,23 +65,6 @@ body.theme-light .hist-tab.active {
   background: #004c6d;
   color: #ffffff;
   border-color: #00608c;
-}
-
-@media (prefers-color-scheme: light) {
-  .hist-tab {
-    background: rgba(0, 0, 0, 0.05);
-    border-color: rgba(0, 0, 0, 0.1);
-    color: #2d3748;
-  }
-  .hist-tab:hover {
-    background: rgba(0, 0, 0, 0.1);
-    color: #1a202c;
-  }
-  .hist-tab.active {
-    background: #004c6d;
-    color: #ffffff;
-    border-color: #00608c;
-  }
 }
 
 .historial-filters { display:flex; gap:8px; align-items:center; }
