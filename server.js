@@ -49,6 +49,82 @@ const USERS = [
   },
 ];
 
+// ─── Historia del Sistema (in-memory — equivale a SQL: system_logs + chat_logs) ───
+//
+// SQL equivalente (para producción con SQLite/PostgreSQL):
+//
+// CREATE TABLE system_logs (
+//   id       INTEGER PRIMARY KEY AUTOINCREMENT,
+//   usuario  TEXT NOT NULL,
+//   accion   TEXT NOT NULL,   -- 'login','logout','perfil','preferencias','password','fraude'
+//   fecha    TEXT NOT NULL,   -- ISO 8601
+//   resultado TEXT NOT NULL,  -- 'exito' | 'error' | 'advertencia'
+//   detalles TEXT             -- JSON string con metadata extra (nunca contraseñas)
+// );
+//
+// CREATE TABLE chat_logs (
+//   id        INTEGER PRIMARY KEY AUTOINCREMENT,
+//   usuario   TEXT NOT NULL,
+//   consulta  TEXT NOT NULL,
+//   respuesta TEXT NOT NULL,
+//   modulo    TEXT NOT NULL,  -- intent del chatbot: 'greet','explain_rule','fraud_info'...
+//   fecha     TEXT NOT NULL,
+//   resultado TEXT NOT NULL   -- 'respondido' | 'desconocido'
+// );
+//
+// Relación de trazabilidad:
+//   SELECT * FROM system_logs s
+//   JOIN chat_logs c ON s.usuario = c.usuario
+//   WHERE s.usuario = 'demo@email.com'
+//   ORDER BY s.fecha DESC;
+
+let logIdCounter  = 1;
+let chatIdCounter = 1;
+
+const SYSTEM_LOGS = []; // Array<{ id, usuario, accion, fecha, resultado, detalles }>
+const CHAT_LOGS   = []; // Array<{ id, usuario, consulta, respuesta, modulo, fecha, resultado }>
+const MAX_LOGS    = 500; // Límite de registros en memoria
+
+/** Inserta un registro de acción del sistema */
+function crearLog(usuario, accion, resultado, detalles = {}) {
+  // Sanitizar: nunca guardar campos sensibles
+  const safe = { ...detalles };
+  delete safe.password;
+  delete safe.currentPassword;
+  delete safe.newPassword;
+  delete safe.token;
+
+  const entry = {
+    id: logIdCounter++,
+    usuario: String(usuario || 'sistema'),
+    accion:  String(accion),
+    fecha:   new Date().toISOString(),
+    resultado: String(resultado), // 'exito' | 'error' | 'advertencia'
+    detalles: JSON.stringify(safe),
+  };
+
+  SYSTEM_LOGS.unshift(entry); // más reciente primero
+  if (SYSTEM_LOGS.length > MAX_LOGS) SYSTEM_LOGS.pop(); // purgar si excede límite
+  return entry;
+}
+
+/** Inserta un registro de interacción del chatbot */
+function crearChatLog(usuario, consulta, respuesta, modulo, resultado = 'respondido') {
+  const entry = {
+    id: chatIdCounter++,
+    usuario: String(usuario || 'sistema'),
+    consulta: String(consulta).substring(0, 500),
+    respuesta: String(respuesta).substring(0, 2000),
+    modulo: String(modulo),
+    fecha: new Date().toISOString(),
+    resultado: String(resultado),
+  };
+
+  CHAT_LOGS.unshift(entry);
+  if (CHAT_LOGS.length > MAX_LOGS) CHAT_LOGS.pop();
+  return entry;
+}
+
 // ─── Server-side Rate Limiting by IP ───
 const loginAttempts = new Map();
 const MAX_ATTEMPTS = 5;
@@ -467,6 +543,226 @@ app.post('/api/fraud-check', authenticateToken, (req, res) => {
   res.json({ score: 12, level: 'bajo', decision: 'Transacción aprobada.', reasons: ['El patrón de riesgo se considera aceptable.'], legitimateUser: true, faceMatch: faceVerified === true });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── Módulo Historial — Endpoints ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/logs/action
+ * Registra una acción del usuario en SYSTEM_LOGS.
+ * Body: { accion, resultado, detalles? }
+ */
+app.post('/api/logs/action', authenticateToken, (req, res) => {
+  const { accion, resultado, detalles } = req.body;
+
+  if (!accion || !resultado) {
+    return res.status(400).json({ success: false, message: 'accion y resultado son requeridos.' });
+  }
+
+  const validos = ['exito', 'error', 'advertencia'];
+  if (!validos.includes(resultado)) {
+    return res.status(400).json({ success: false, message: `resultado debe ser: ${validos.join(', ')}.` });
+  }
+
+  const log = crearLog(req.user.email, accion, resultado, detalles || {});
+  res.status(201).json({ success: true, log });
+});
+
+/**
+ * POST /api/logs/chat
+ * Registra una interacción con el Asistente IA en CHAT_LOGS.
+ * Body: { consulta, respuesta, modulo, resultado? }
+ */
+app.post('/api/logs/chat', authenticateToken, (req, res) => {
+  const { consulta, respuesta, modulo, resultado } = req.body;
+
+  if (!consulta || !respuesta || !modulo) {
+    return res.status(400).json({ success: false, message: 'consulta, respuesta y modulo son requeridos.' });
+  }
+
+  const log = crearChatLog(
+    req.user.email,
+    consulta,
+    respuesta,
+    modulo,
+    resultado || 'respondido'
+  );
+  res.status(201).json({ success: true, log });
+});
+
+/**
+ * GET /api/logs
+ * Devuelve historial combinado con filtros opcionales.
+ * Query params: tipo (sistema|chat|all), usuario, fecha (YYYY-MM-DD), resultado, q (texto libre)
+ */
+app.get('/api/logs', authenticateToken, (req, res) => {
+  const { tipo = 'all', usuario, fecha, resultado, q } = req.query;
+  const isAdmin = req.user.role === 'admin';
+
+  // Filtro de usuario: non-admins solo ven sus propios logs
+  const filterUser = isAdmin && usuario ? usuario : req.user.email;
+
+  // Filtrar SYSTEM_LOGS
+  let sysLogs = SYSTEM_LOGS.filter(l => {
+    if (!isAdmin && l.usuario !== req.user.email) return false;
+    if (isAdmin && usuario && l.usuario !== usuario) return false;
+    if (fecha && !l.fecha.startsWith(fecha)) return false;
+    if (resultado && l.resultado !== resultado) return false;
+    if (q && !l.accion.toLowerCase().includes(q.toLowerCase()) &&
+        !l.detalles.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  }).map(l => ({ ...l, tipo: 'sistema' }));
+
+  // Filtrar CHAT_LOGS
+  let chatLogs = CHAT_LOGS.filter(l => {
+    if (!isAdmin && l.usuario !== req.user.email) return false;
+    if (isAdmin && usuario && l.usuario !== usuario) return false;
+    if (fecha && !l.fecha.startsWith(fecha)) return false;
+    if (resultado && l.resultado !== resultado) return false;
+    if (q && !l.consulta.toLowerCase().includes(q.toLowerCase()) &&
+        !l.respuesta.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  }).map(l => ({ ...l, tipo: 'chat' }));
+
+  // Combinar según tipo solicitado
+  let combinados;
+  if (tipo === 'sistema') {
+    combinados = sysLogs;
+  } else if (tipo === 'chat') {
+    combinados = chatLogs;
+  } else {
+    combinados = [...sysLogs, ...chatLogs].sort(
+      (a, b) => new Date(b.fecha) - new Date(a.fecha)
+    );
+  }
+
+  res.json({
+    success: true,
+    total: combinados.length,
+    logs: combinados.slice(0, 200), // máximo 200 registros por petición
+    meta: {
+      totalSistema: sysLogs.length,
+      totalChat: chatLogs.length,
+      isAdmin,
+    },
+  });
+});
+
+/**
+ * DELETE /api/logs
+ * Elimina registros según filtros. Requiere body con al menos un criterio.
+ * Body: { tipo?, usuario?, fecha?, resultado?, ids? }
+ * Non-admins solo pueden eliminar sus propios logs.
+ */
+app.delete('/api/logs', authenticateToken, (req, res) => {
+  const { tipo, usuario, fecha, resultado, ids } = req.body || {};
+  const isAdmin = req.user.role === 'admin';
+
+  // Al menos un filtro requerido para evitar borrado masivo accidental por este endpoint
+  if (!tipo && !usuario && !fecha && !resultado && !ids) {
+    return res.status(400).json({
+      success: false,
+      message: 'Se requiere al menos un filtro (tipo, usuario, fecha, resultado o ids).',
+    });
+  }
+
+  let deletedSys  = 0;
+  let deletedChat = 0;
+
+  const matchesFilters = (log, typeLabel) => {
+    if (!isAdmin && log.usuario !== req.user.email) return false;
+    if (isAdmin && usuario && log.usuario !== usuario) return false;
+    if (tipo && tipo !== 'all' && tipo !== typeLabel) return false;
+    if (fecha && !log.fecha.startsWith(fecha)) return false;
+    if (resultado && log.resultado !== resultado) return false;
+    if (ids && Array.isArray(ids) && !ids.includes(log.id)) return false;
+    return true;
+  };
+
+  if (!tipo || tipo === 'sistema' || tipo === 'all') {
+    const before = SYSTEM_LOGS.length;
+    const toRemove = SYSTEM_LOGS.filter(l => matchesFilters(l, 'sistema'));
+    toRemove.forEach(l => { const i = SYSTEM_LOGS.indexOf(l); if (i > -1) SYSTEM_LOGS.splice(i, 1); });
+    deletedSys = before - SYSTEM_LOGS.length;
+  }
+
+  if (!tipo || tipo === 'chat' || tipo === 'all') {
+    const before = CHAT_LOGS.length;
+    const toRemove = CHAT_LOGS.filter(l => matchesFilters(l, 'chat'));
+    toRemove.forEach(l => { const i = CHAT_LOGS.indexOf(l); if (i > -1) CHAT_LOGS.splice(i, 1); });
+    deletedChat = before - CHAT_LOGS.length;
+  }
+
+  crearLog(req.user.email, 'eliminar_historial', 'exito', {
+    filtros: { tipo, usuario, fecha, resultado, idsCount: ids?.length },
+    eliminados: { sistema: deletedSys, chat: deletedChat },
+  });
+
+  res.json({
+    success: true,
+    message: `Se eliminaron ${deletedSys + deletedChat} registros.`,
+    eliminados: { sistema: deletedSys, chat: deletedChat },
+  });
+});
+
+/**
+ * DELETE /api/logs/all
+ * Elimina TODO el historial. Solo admins pueden borrar de otros usuarios.
+ * Non-admins solo borran su propio historial.
+ * Body: { confirmCode } — debe ser exactamente "CONFIRMAR"
+ */
+app.delete('/api/logs/all', authenticateToken, (req, res) => {
+  const { confirmCode } = req.body || {};
+
+  if (confirmCode !== 'CONFIRMAR') {
+    return res.status(400).json({
+      success: false,
+      message: 'Se requiere confirmCode = "CONFIRMAR" para borrar todo el historial.',
+    });
+  }
+
+  const isAdmin = req.user.role === 'admin';
+  let delSys = 0, delChat = 0;
+
+  if (isAdmin) {
+    // Admin borra absolutamente todo
+    delSys  = SYSTEM_LOGS.length;
+    delChat = CHAT_LOGS.length;
+    SYSTEM_LOGS.length = 0;
+    CHAT_LOGS.length   = 0;
+    logIdCounter  = 1;
+    chatIdCounter = 1;
+  } else {
+    // Non-admin solo borra sus propios registros
+    const userEmail = req.user.email;
+    const sysBefore = SYSTEM_LOGS.length;
+    const chatBefore = CHAT_LOGS.length;
+
+    const removeFrom = (arr, email) => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (arr[i].usuario === email) arr.splice(i, 1);
+      }
+    };
+    removeFrom(SYSTEM_LOGS, userEmail);
+    removeFrom(CHAT_LOGS,   userEmail);
+
+    delSys  = sysBefore  - SYSTEM_LOGS.length;
+    delChat = chatBefore - CHAT_LOGS.length;
+  }
+
+  crearLog(req.user.email, 'eliminar_historial_total', 'advertencia', {
+    esAdmin: isAdmin,
+    eliminados: { sistema: delSys, chat: delChat },
+  });
+
+  res.json({
+    success: true,
+    message: `Historial eliminado. ${delSys + delChat} registros borrados.`,
+    eliminados: { sistema: delSys, chat: delChat },
+  });
+});
+
+// ─── Health ───
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
