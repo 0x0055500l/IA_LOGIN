@@ -1690,16 +1690,19 @@ function setupInteractiveBanking(user) {
         addAuditLog('Iniciando análisis facial mediante backend...', 'text-muted');
 
         // Esperar a que el video tenga frames reales (videoWidth > 0)
+        // Máximo 3 segundos de espera para la cámara
         await new Promise((resolve) => {
           let tries = 0;
           const checkVideo = () => {
             if (video && video.videoWidth > 0 && video.readyState >= 2) {
+              console.log(`[FaceUI] Cámara lista: ${video.videoWidth}x${video.videoHeight}, readyState=${video.readyState}`);
               resolve();
-            } else if (tries < 40) { // máximo 2 segundos de espera
+            } else if (tries < 60) { // máximo 3 segundos (60 x 50ms)
               tries++;
               setTimeout(checkVideo, 50);
             } else {
-              resolve(); // continuar de todas formas
+              console.warn(`[FaceUI] Timeout esperando cámara (videoWidth=${video ? video.videoWidth : 'sin video'})`);
+              resolve();
             }
           };
           checkVideo();
@@ -1707,6 +1710,20 @@ function setupInteractiveBanking(user) {
 
         setFacialStatus('Analizando rostro...', 'pending');
         const frameData = captureFrame();
+
+        // Log de depuración: verificar que la imagen es válida
+        const frameLen = frameData ? frameData.length : 0;
+        const isRealImage = frameLen > 5000;
+        console.log(`[FaceUI] Frame capturado: ${frameLen} chars, isReal=${isRealImage}, prefix=${frameData ? frameData.substring(0, 30) : 'null'}`);
+
+        if (!frameData || frameLen < 100) {
+          setFacialStatus('⚠️ Cámara no lista. Intenta de nuevo.', 'warning');
+          showToast('La cámara no está lista. Espera un momento y vuelve a intentar.', 'warning');
+          faceValidated = false;
+          btnEvaluateFace.disabled = false;
+          return;
+        }
+
         const payload = { faceImage: frameData, faceVerified: false };
 
         const token = sessionStorage.getItem('authToken') || '';
@@ -1719,6 +1736,7 @@ function setupInteractiveBanking(user) {
           body: JSON.stringify(payload),
         });
         const result = await response.json();
+        console.log(`[FaceUI] Respuesta servidor:`, result._debug || result);
         similarity = typeof result.faceSimilarity === 'number' ? result.faceSimilarity : 0;
         const verified = Boolean(result.faceMatch);
 
