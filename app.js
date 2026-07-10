@@ -699,4 +699,3 @@ function preventDevTools() {
     "font-size: 16px;",
   );
 }
-// made josseth
