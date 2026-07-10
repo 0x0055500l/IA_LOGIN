@@ -220,6 +220,10 @@ function initHistorialView() {
     return;
   }
   _historialInited = true;
+  // Marcar la navegación activa
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+  const nav = document.getElementById('navHistorial');
+  if (nav) nav.classList.add('active');
 
   _buildHistorialHTML();
   _bindHistorialEvents();

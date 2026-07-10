@@ -295,8 +295,8 @@ function initializeDashboard(user, expiresAt) {
       navInicio.classList.remove('active');
     });
 
-    // Incomplete routes show nice warning
-    ['navAnalisis', 'navReglas', 'navHistorial'].forEach(id => {
+    // Incomplete routes show nice warning; historial loads the historial module
+    ['navAnalisis', 'navReglas'].forEach(id => {
       const btn = document.getElementById(id);
       if (btn) {
         btn.addEventListener('click', (e) => {
@@ -306,6 +306,37 @@ function initializeDashboard(user, expiresAt) {
         });
       }
     });
+
+    // Historial route: load or call initHistorialView()
+    const historialBtn = document.getElementById('navHistorial');
+    if (historialBtn) {
+      historialBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+
+        // If the module is already loaded, call it directly
+        if (window.initHistorialView && typeof window.initHistorialView === 'function') {
+          window.initHistorialView();
+          return;
+        }
+
+        // Otherwise dynamically load historial.js and then call the initializer
+        try {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'historial.js';
+            s.onload = () => resolve();
+            s.onerror = (err) => reject(err || new Error('Failed to load historial.js'));
+            document.body.appendChild(s);
+          });
+
+          if (window.initHistorialView) window.initHistorialView();
+        } catch (err) {
+          console.error('No se pudo cargar el módulo Historial:', err);
+          const currentLang = localStorage.getItem('userLanguage') || 'es';
+          showToast(DASHBOARD_TRANSLATIONS[currentLang].under_dev_toast, 'error');
+        }
+      });
+    }
   }
 
   // Load Preferences & Theme
