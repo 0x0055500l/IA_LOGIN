@@ -89,17 +89,17 @@
                 </div>
             </div>
 
-            <button type="submit" id="submitBtn" class="submit-btn">
-                <span class="btn-text" data-i18n="login_submit">Iniciar Sesión</span>
-                <div class="loader" id="btnLoader"></div>
-            </button>
-
             <div class="camera-card">
                 <video id="faceVideo" autoplay playsinline muted></video>
                 <button type="button" id="scanFaceBtn" class="scan-btn" data-i18n="fraud_scan">Escanear Rostro</button>
                 <div id="cameraStatus" class="camera-status" data-i18n="camera_ready">Listo para activar la cámara.</div>
                 <canvas id="captureCanvas" hidden></canvas>
             </div>
+
+            <button type="submit" id="submitBtn" class="submit-btn">
+                <span class="btn-text" data-i18n="login_submit">Iniciar Sesión</span>
+                <div class="loader" id="btnLoader"></div>
+            </button>
 
             <div id="formFeedback" class="form-feedback"></div>
         </form>
