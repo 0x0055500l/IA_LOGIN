@@ -264,24 +264,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   const settingsView = document.getElementById('settingsView');
   const historialView = document.getElementById('historialView');
 
-  if (sessionLoader) {
-    sessionLoader.classList.add('hidden');
-    sessionLoader.style.display = 'none';
-  }
-  if (dashboardShell) dashboardShell.style.display = '';
-  if (dashboardView) dashboardView.style.display = 'grid';
-  if (settingsView) settingsView.style.display = 'none';
-  if (historialView) historialView.style.display = 'none';
+  const hideLoader = () => {
+    if (sessionLoader) {
+      sessionLoader.classList.add('hidden');
+      sessionLoader.style.display = 'none';
+    }
+  };
 
-  // JWT Session Validation
-  const token = sessionStorage.getItem('authToken');
+  const showDashboard = () => {
+    if (dashboardShell) dashboardShell.style.display = '';
+    if (dashboardView) dashboardView.style.display = 'grid';
+    if (settingsView) settingsView.style.display = 'none';
+    if (historialView) historialView.style.display = 'none';
+  };
 
-  if (!token) {
-    window.location.href = 'index.html';
-    return;
-  }
+  hideLoader();
+  showDashboard();
 
   try {
+    const token = sessionStorage.getItem('authToken');
+
+    if (!token) {
+      window.location.href = 'index.html';
+      return;
+    }
+
     const response = await fetch('/api/session', {
       method: 'GET',
       headers: {
@@ -309,9 +316,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initializeDashboard(user, session.expiresAt);
   } catch (error) {
-    console.error('Session validation failed:', error);
-    sessionStorage.clear();
-    window.location.href = 'index.html';
+    console.error('Dashboard initialization failed:', error);
+    hideLoader();
+    showDashboard();
   }
 });
 
