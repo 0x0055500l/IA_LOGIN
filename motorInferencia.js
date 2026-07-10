@@ -7,7 +7,6 @@
     const dispositivoRegistrado = Boolean(contexto.dispositivoRegistrado);
     const credencialesValidas = Boolean(contexto.credencialesValidas);
     const requiereOtp = Boolean(contexto.requiereOtp);
-
     reglas.forEach((regla) => {
       let cumple = false;
 
