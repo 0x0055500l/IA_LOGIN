@@ -2307,8 +2307,20 @@ function setupInteractiveBanking(user) {
     });
   }
 
-  function handleSimulation(type, amountVal, label, limit, successMessage, denyLabel) {
+  function handleSimulation(type, rawAmount, label, limit, successMessage, denyLabel) {
     const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+    const amountValidation = window.cardUtils?.validateTransactionAmount?.(rawAmount);
+
+    if (!amountValidation?.valid) {
+      showToast(amountValidation?.message || 'Debe ingresar un monto para realizar la transacción.', 'error');
+      addAuditLog(`Transacción denegada: ${amountValidation?.message || 'Debe ingresar un monto para realizar la transacción.'}`, 'val-danger');
+      if (transactionAmountInput) {
+        transactionAmountInput.focus();
+      }
+      return false;
+    }
+
+    const amountVal = amountValidation.amount;
 
     if (!isCardActive()) {
       showToast('Transacción no disponible: la tarjeta no está activa', 'error');
@@ -2361,30 +2373,26 @@ function setupInteractiveBanking(user) {
   // Simulated Purchases
   if (btnSimulatePurchase) {
     btnSimulatePurchase.addEventListener('click', () => {
-      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Compra', amountVal, 'Simulación Compra', PURCHASE_LIMIT, 'Compra aprobada con éxito', 'Compra');
+      handleSimulation('Compra', transactionAmountInput?.value, 'Simulación Compra', PURCHASE_LIMIT, 'Compra aprobada con éxito', 'Compra');
     });
   }
 
   // Simulated Transfers
   if (btnSimulateTransfer) {
     btnSimulateTransfer.addEventListener('click', () => {
-      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Transferencia', amountVal, 'Simulación Transferencia', TRANSFER_LIMIT, 'Transferencia realizada con éxito', 'Transferencia');
+      handleSimulation('Transferencia', transactionAmountInput?.value, 'Simulación Transferencia', TRANSFER_LIMIT, 'Transferencia realizada con éxito', 'Transferencia');
     });
   }
 
   if (btnSimulateWithdrawal) {
     btnSimulateWithdrawal.addEventListener('click', () => {
-      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Retiro', amountVal, 'Simulación Retiro', WITHDRAWAL_LIMIT, 'Retiro autorizado con éxito', 'Retiro');
+      handleSimulation('Retiro', transactionAmountInput?.value, 'Simulación Retiro', WITHDRAWAL_LIMIT, 'Retiro autorizado con éxito', 'Retiro');
     });
   }
 
   if (btnSimulatePayment) {
     btnSimulatePayment.addEventListener('click', () => {
-      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Pago', amountVal, 'Simulación Pago', PAYMENT_LIMIT, 'Pago procesado con éxito', 'Pago');
+      handleSimulation('Pago', transactionAmountInput?.value, 'Simulación Pago', PAYMENT_LIMIT, 'Pago procesado con éxito', 'Pago');
     });
   }
 

@@ -52,6 +52,20 @@
     return value;
   }
 
+  function validateTransactionAmount(value) {
+    const trimmedValue = String(value ?? '').trim();
+    if (trimmedValue === '') {
+      return { valid: false, message: 'Debe ingresar un monto para realizar la transacción.', amount: null };
+    }
+
+    const amount = Number(trimmedValue);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { valid: false, message: 'Debe ingresar un monto válido mayor a cero.', amount: null };
+    }
+
+    return { valid: true, message: '', amount };
+  }
+
   function isCardTransactionAllowed(status, biometricValidated = false) {
     return normalizeCardStatus(status) === 'Completada' && Boolean(biometricValidated);
   }
@@ -64,6 +78,7 @@
     generateInitialAvailableAmount,
     getActiveCardBalance,
     normalizeCardStatus,
+    validateTransactionAmount,
     isCardTransactionAllowed
   };
 
