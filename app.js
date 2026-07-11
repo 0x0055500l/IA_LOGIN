@@ -32,15 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
       login_phone: "Número Telefónico",
       login_password: "Contraseña",
       login_submit: "Iniciar Sesión",
-      fraud_toggle_btn: "🛡️ Verificación Antifraude",
-      fraud_title: "Motor de Inferencia Antifraude",
-      fraud_desc: "Analiza la transacción ficticia con cámara y reglas expertas.",
-      fraud_amount: "Monto",
-      fraud_hour: "Hora",
-      fraud_loc: "Ubicación actual",
-      fraud_last_loc: "Última compra",
-      fraud_scan: "Escanear Rostro",
-      camera_ready: "Listo para activar la cámara.",
       risk_waiting: "Esperando evaluación del riesgo…"
     },
     en: {
@@ -50,15 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
       login_phone: "Phone Number",
       login_password: "Password",
       login_submit: "Sign In",
-      fraud_toggle_btn: "🛡️ Fraud Verification",
-      fraud_title: "Anti-Fraud Inference Engine",
-      fraud_desc: "Analyzes mock transactions using camera and expert rules.",
-      fraud_amount: "Amount",
-      fraud_hour: "Hour",
-      fraud_loc: "Current Location",
-      fraud_last_loc: "Last Purchase",
-      fraud_scan: "Scan Face",
-      camera_ready: "Ready to activate camera.",
       risk_waiting: "Waiting for risk evaluation..."
     }
   };
@@ -133,10 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitBtn = document.getElementById("submitBtn");
   const formFeedback = document.getElementById("formFeedback");
   const emailLoader = document.getElementById("emailLoader");
-  const scanFaceBtn = document.getElementById("scanFaceBtn");
-  const faceVideo = document.getElementById("faceVideo");
-  const captureCanvas = document.getElementById("captureCanvas");
-  const cameraStatus = document.getElementById("cameraStatus");
 
   // Initialize intlTelInput for advanced phone validation
   const iti = window.intlTelInput(phoneInput, {
@@ -347,95 +325,6 @@ document.addEventListener("DOMContentLoaded", () => {
       type === "text" ? "var(--primary-color)" : "var(--text-muted)";
   });
 
-  let faceVerified = false;
-  let streamActive = false;
-
-  async function startCamera() {
-    if (streamActive) return;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false,
-      });
-      faceVideo.srcObject = stream;
-      await faceVideo.play();
-      streamActive = true;
-      cameraStatus.textContent = "Cámara activa. Presiona Escanear Rostro.";
-      cameraStatus.className = "camera-status";
-    } catch (error) {
-      cameraStatus.textContent =
-        "No se pudo acceder a la cámara. Usa un navegador con permisos.";
-      cameraStatus.className = "camera-status error";
-      console.error(error);
-    }
-  }
-
-  function captureFrame() {
-    const context = captureCanvas.getContext("2d");
-    captureCanvas.width = faceVideo.videoWidth || 320;
-    captureCanvas.height = faceVideo.videoHeight || 240;
-    context.drawImage(
-      faceVideo,
-      0,
-      0,
-      captureCanvas.width,
-      captureCanvas.height,
-    );
-    return captureCanvas.toDataURL("image/png");
-  }
-
-  async function evaluateFaceVerification() {
-    if (!streamActive) {
-      await startCamera();
-    }
-
-    scanFaceBtn.disabled = true;
-    scanFaceBtn.textContent = "Analizando…";
-    cameraStatus.textContent = "Procesando rostro…";
-
-    const payload = {
-      faceImage: captureFrame(),
-    };
-
-    try {
-      const response = await fetch("http://localhost:3000/api/fraud-check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-      faceVerified = true;
-      cameraStatus.textContent = "Rostro verificado con éxito.";
-      cameraStatus.className = "camera-status success";
-
-      if (!faceVerified) {
-        formFeedback.textContent =
-          "Verificación facial necesaria antes de iniciar sesión.";
-        formFeedback.className = "form-feedback feedback-warning";
-      } else {
-        rostroVerificado = true;
-        formFeedback.textContent = "Rostro verificado. Ahora puedes iniciar sesión.";
-        formFeedback.className = "form-feedback feedback-success";
-      }
-    } catch (error) {
-      faceVerified = false;
-      cameraStatus.textContent = "No fue posible contactar al servicio de verificación.";
-      cameraStatus.className = "camera-status error";
-      formFeedback.textContent = "No se pudo verificar el rostro. Intenta nuevamente.";
-      formFeedback.className = "form-feedback feedback-error";
-      console.error(error);
-    } finally {
-      scanFaceBtn.disabled = false;
-      scanFaceBtn.textContent = "Escanear Rostro";
-    }
-  }
-
-  scanFaceBtn.addEventListener("click", async () => {
-    await evaluateFaceVerification();
-  });
-
   // 6. Form Submission — Server-side authentication
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -479,12 +368,6 @@ document.addEventListener("DOMContentLoaded", () => {
         phoneError,
         getValidationMsg("phone_region", currentLang),
       );
-      hasError = true;
-    }
-
-    if (!faceVerified) {
-      formFeedback.textContent = "Debes completar la verificación facial antes de iniciar sesión.";
-      formFeedback.className = "form-feedback feedback-warning";
       hasError = true;
     }
 

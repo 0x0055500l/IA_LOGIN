@@ -1410,18 +1410,9 @@ function setupInteractiveBanking(user) {
   const btnReactivateCard = document.getElementById('btnReactivateCard');
   const btnReviewAlerts = document.getElementById('btnReviewAlerts');
 
-  const bankingRiskAlert = document.getElementById('bankingRiskAlert');
-  const btnEvaluateFace = bankingRiskAlert?.querySelector('#btnEvaluateFace') ?? document.getElementById('btnEvaluateFace');
-  const faceScannerView = bankingRiskAlert?.querySelector('#faceScannerView') ?? document.getElementById('faceScannerView');
-  const scannerStatusText = bankingRiskAlert?.querySelector('#scannerStatusText') ?? document.getElementById('scannerStatusText');
-  const btnBlockCard = document.getElementById('btnBlockCard');
-  const btnReactivateCard = document.getElementById('btnReactivateCard');
-  const btnReviewAlerts = document.getElementById('btnReviewAlerts');
-
   const statusCardVal = document.getElementById('statusCardVal');
   const statusFaceVal = document.getElementById('statusFaceVal');
   const statusDeviceVal = document.getElementById('statusDeviceVal');
-  const bankingRiskAlert = document.getElementById('bankingRiskAlert');
   const bankingAuditList = document.getElementById('bankingAuditList');
 
   // Balance and Simulator Elements
@@ -1432,7 +1423,6 @@ function setupInteractiveBanking(user) {
   const btnSimulateTransfer = document.getElementById('btnSimulateTransfer');
   const bankingTransactionsList = document.getElementById('bankingTransactionsList');
 
-  let faceValidated = false;
   let cardBlocked = false;
   let balance = parseFloat(localStorage.getItem('cardBalanceVal') || '5248.50');
 
@@ -1525,44 +1515,14 @@ function setupInteractiveBanking(user) {
     if (isTrusted) {
       statusDeviceVal.textContent = '✓ Seguro';
       statusDeviceVal.className = 'status-value val-success';
-      if (bankingRiskAlert) bankingRiskAlert.style.display = 'none';
     } else {
       statusDeviceVal.textContent = '✗ No Confiable';
       statusDeviceVal.className = 'status-value val-danger';
-      if (bankingRiskAlert) bankingRiskAlert.style.display = faceValidated ? 'none' : 'flex';
     }
     updateBalanceAndSecurityUI();
   }
 
   // Initialize UI values
-
-  // Real camera start function (reused from login implementation)
-  async function startCamera() {
-    if (window.dashboardCameraActive) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
-      if (video) {
-        video.srcObject = stream;
-        await video.play();
-      }
-      window.dashboardCameraActive = true;
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-    }
-  }
-
-  // Capture a frame from the video (used for facial verification)
-  function captureFrame() {
-    const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
-    const canvas = document.getElementById('captureCanvas');
-    if (!video || !canvas) return null;
-    const ctx = canvas.getContext('2d');
-    canvas.width = video.videoWidth || 320;
-    canvas.height = video.videoHeight || 240;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/png');
-  }
 
   updateDeviceStatusBadge();
   renderTransactionsTable();
@@ -1640,182 +1600,6 @@ function setupInteractiveBanking(user) {
     });
   }
 
-  // Real facial validation using backend API — mismo modelo y flujo que el login
-  if (btnEvaluateFace && faceScannerView) {
-    function setFacialStatus(message, tone = 'pending') {
-      if (statusFaceVal) {
-        statusFaceVal.textContent = message;
-        statusFaceVal.className = tone === 'success'
-          ? 'status-value val-success'
-          : tone === 'danger'
-            ? 'status-value val-danger'
-            : 'status-value val-pending';
-      }
-      if (scannerStatusText) scannerStatusText.textContent = message;
-      if (faceScannerView) {
-        faceScannerView.className = `face-scanner-view ${tone === 'success' ? 'scanned' : tone === 'danger' ? 'scanning' : ''}`.trim();
-      }
-    }
-
-    function recordFacialAttempt(resultLabel, resultTone, details = {}) {
-      const now = new Date();
-      const fecha = now.toISOString();
-      const hora = now.toLocaleTimeString('es-HN');
-      const dia = now.toLocaleDateString('es-HN');
-
-      addAuditLog(`📸 Verificación facial [${dia} ${hora}] — Resultado: ${resultLabel}`, resultTone === 'success' ? 'val-success' : resultTone === 'warning' ? 'val-pending' : 'val-danger');
-
-      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-        window.registrarAccion(
-          'validacion_facial_fraude',
-          resultTone === 'success' ? 'exito' : (resultTone === 'warning' ? 'advertencia' : 'error'),
-          {
-            fecha,
-            hora,
-            resultado: resultLabel,
-            usuario: user ? user.email : 'desconocido',
-            modulo: 'fraud_face_validation',
-            ...details,
-          }
-        );
-      }
-    }
-
-    async function evaluateFace() {
-      const attemptTime = new Date();
-      let attemptResultLabel = 'fallo';
-      let attemptResultTone = 'danger';
-      let similarity = 0;
-
-      try {
-        if (!isCardActive() || cardBlocked) {
-          const msg = 'Validación facial no disponible: tarjeta bloqueada';
-          setFacialStatus(msg, 'warning');
-          addAuditLog(`⚠️ ${msg}`, 'val-pending');
-          showToast(msg, 'warning');
-          faceValidated = false;
-          attemptResultLabel = 'no disponible';
-          attemptResultTone = 'warning';
-          recordFacialAttempt(attemptResultLabel, attemptResultTone, { motivo: 'tarjeta_bloqueada_o_pendiente' });
-          return;
-        }
-
-        await startCamera();
-        const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
-        if (video) {
-          video.style.display = 'block';
-        }
-        setFacialStatus('Activando cámara...', 'pending');
-        addAuditLog('Iniciando análisis facial mediante backend...', 'text-muted');
-
-        // Esperar a que el video tenga frames reales (videoWidth > 0)
-        // Máximo 3 segundos de espera para la cámara
-        await new Promise((resolve) => {
-          let tries = 0;
-          const checkVideo = () => {
-            if (video && video.videoWidth > 0 && video.readyState >= 2) {
-              console.log(`[FaceUI] Cámara lista: ${video.videoWidth}x${video.videoHeight}, readyState=${video.readyState}`);
-              resolve();
-            } else if (tries < 60) { // máximo 3 segundos (60 x 50ms)
-              tries++;
-              setTimeout(checkVideo, 50);
-            } else {
-              console.warn(`[FaceUI] Timeout esperando cámara (videoWidth=${video ? video.videoWidth : 'sin video'})`);
-              resolve();
-            }
-          };
-          checkVideo();
-        });
-
-        setFacialStatus('Analizando rostro...', 'pending');
-        const frameData = captureFrame();
-
-        // Log de depuración: verificar que la imagen es válida
-        const frameLen = frameData ? frameData.length : 0;
-        const isRealImage = frameLen > 5000;
-        console.log(`[FaceUI] Frame capturado: ${frameLen} chars, isReal=${isRealImage}, prefix=${frameData ? frameData.substring(0, 30) : 'null'}`);
-
-        if (!frameData || frameLen < 100) {
-          setFacialStatus('⚠️ Cámara no lista. Intenta de nuevo.', 'warning');
-          showToast('La cámara no está lista. Espera un momento y vuelve a intentar.', 'warning');
-          faceValidated = false;
-          btnEvaluateFace.disabled = false;
-          return;
-        }
-
-        const payload = { faceImage: frameData, faceVerified: false };
-
-        const token = sessionStorage.getItem('authToken') || '';
-        const headers = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const response = await fetch('/api/fraud-check', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-        });
-        const result = await response.json();
-        console.log(`[FaceUI] Respuesta servidor:`, result._debug || result);
-        similarity = typeof result.faceSimilarity === 'number' ? result.faceSimilarity : 0;
-        const verified = Boolean(result.faceMatch);
-
-        faceValidated = verified;
-
-        if (verified) {
-          attemptResultLabel = 'éxito';
-          attemptResultTone = 'success';
-          setFacialStatus('✓ Validación facial exitosa', 'success');
-          addAuditLog('Biometría facial: Rostro VALIDADO correctamente.', 'val-success');
-          showToast('✓ Validación facial exitosa', 'success');
-          if (bankingRiskAlert) bankingRiskAlert.style.display = 'none';
-        } else {
-          attemptResultLabel = 'fallo';
-          attemptResultTone = 'danger';
-          setFacialStatus('✗ Validación facial fallida, acceso denegado', 'danger');
-          addAuditLog('Validación facial fallida', 'val-danger');
-          showToast('✗ Validación facial fallida, acceso denegado', 'error');
-        }
-      } catch (err) {
-        console.error(err);
-        attemptResultLabel = 'fallo';
-        attemptResultTone = 'danger';
-        setFacialStatus('✗ Validación facial fallida, acceso denegado', 'danger');
-        addAuditLog('Error en validación facial', 'val-danger');
-        showToast('✗ Validación facial fallida, acceso denegado', 'error');
-      } finally {
-        const video = bankingRiskAlert?.querySelector('#faceVideo') ?? document.getElementById('faceVideo');
-        if (video) {
-          if (!faceValidated) {
-            video.style.display = 'block';
-          } else {
-            video.style.display = 'none';
-          }
-        }
-        btnEvaluateFace.disabled = false;
-
-        recordFacialAttempt(attemptResultLabel, attemptResultTone, {
-          fechaIntento: attemptTime.toISOString(),
-          similitud: Number(similarity.toFixed(3)),
-        });
-      }
-    }
-
-    btnEvaluateFace.addEventListener('click', async () => {
-      if (!isCardActive() || cardBlocked) {
-        const msg = 'Validación facial no disponible: tarjeta bloqueada';
-        setFacialStatus(msg, 'warning');
-        addAuditLog(`⚠️ ${msg}`, 'val-pending');
-        showToast(msg, 'warning');
-        faceValidated = false;
-        recordFacialAttempt('no disponible', 'warning', { motivo: 'tarjeta_bloqueada_o_pendiente' });
-        return;
-      }
-      btnEvaluateFace.disabled = true;
-      await evaluateFace();
-    });
-  }
-
-
   // Validate access button
   if (btnValidateAccess) {
     btnValidateAccess.addEventListener('click', async () => {
@@ -1843,13 +1627,6 @@ function setupInteractiveBanking(user) {
         }
         showToast('Datos de tarjeta incorrectos.', 'error');
         addAuditLog('Error: Formato de tarjeta inválido.', 'val-danger');
-        return;
-      }
-
-      // Validate Face biometrics
-      if (!faceValidated) {
-        showToast('Falta autenticación facial.', 'error');
-        addAuditLog('Acceso denegado: Rostro pendiente de verificación.', 'val-danger');
         return;
       }
 
@@ -1881,15 +1658,9 @@ function setupInteractiveBanking(user) {
         }
       } catch (e) {}
 
-      faceValidated = false;
-
       if (statusFaceVal) {
         statusFaceVal.textContent = 'Pendiente';
         statusFaceVal.className = 'status-value val-pending';
-      }
-      if (faceScannerView) {
-        faceScannerView.className = 'face-scanner-view';
-        if (scannerStatusText) scannerStatusText.textContent = 'Escaneo cancelado';
       }
       if (cardNumber) cardNumber.value = '';
       if (cardExpiry) cardExpiry.value = '';
@@ -1947,28 +1718,8 @@ function setupInteractiveBanking(user) {
         return;
       }
       if (!isDeviceTrusted) {
-          // Requerir autenticación biométrica obligatoria para dispositivos no confiables
-          showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
-          addAuditLog('ALERTA: Dispositivo no confiable, autenticación biométrica requerida', 'val-danger');
-          // Iniciar flujo de validación facial
-          btnEvaluateFace.disabled = true;
-          await evaluateFace();
-          if (!faceValidated) {
-            showToast('Validación facial fallida, acceso denegado', 'error');
-            addAuditLog('Acceso denegado por falla en validación facial', 'val-danger');
-            btnEvaluateFace.disabled = false;
-            return;
-          }
-          // Validación facial exitosa
-          showToast('Validación facial exitosa', 'success');
-          addAuditLog('Validación facial exitosa, dispositivo ahora confiable', 'val-success');
-        }
-      if (!faceValidated) {
-          // Facial validation failed
-          showToast('Validación facial fallida, acceso denegado', 'error');
-          addAuditLog('Validación facial fallida, acceso denegado', 'val-danger');
-          saveTransaction('Simulación Compra', amountVal, 'Denegado');
-          return;
+          showToast('Dispositivo no confiable detectado. Revise su configuración.', 'warning');
+          addAuditLog('Dispositivo no confiable detectado en simulación.', 'val-warning');
         }
       if (amountVal > 2000.00) {
         showToast('Denegada: Excede límite de compra ($2,000.00)', 'error');
@@ -2010,28 +1761,8 @@ function setupInteractiveBanking(user) {
         return;
       }
       if (!isDeviceTrusted) {
-          // Requerir autenticación biométrica obligatoria para dispositivos no confiables
-          showToast('Dispositivo no confiable, se requiere autenticación biométrica', 'error');
-          addAuditLog('ALERTA: Dispositivo no confiable, autenticación biométrica requerida', 'val-danger');
-          // Iniciar flujo de validación facial
-          btnEvaluateFace.disabled = true;
-          await evaluateFace();
-          if (!faceValidated) {
-            showToast('Validación facial fallida, acceso denegado', 'error');
-            addAuditLog('Acceso denegado por falla en validación facial', 'val-danger');
-            btnEvaluateFace.disabled = false;
-            return;
-          }
-          // Validación facial exitosa
-          showToast('Validación facial exitosa', 'success');
-          addAuditLog('Validación facial exitosa, dispositivo ahora confiable', 'val-success');
-        }
-      if (!faceValidated) {
-          // Facial validation failed
-          showToast('Validación facial fallida, acceso denegado', 'error');
-          addAuditLog('Validación facial fallida, acceso denegado', 'val-danger');
-          saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-          return;
+          showToast('Dispositivo no confiable detectado. Revise su configuración.', 'warning');
+          addAuditLog('Dispositivo no confiable detectado en simulación.', 'val-warning');
         }
       if (amountVal > 1500.00) {
         showToast('Denegada: Excede límite de transferencia ($1,500.00)', 'error');
@@ -2065,14 +1796,7 @@ function setupInteractiveBanking(user) {
     btnReviewAlerts.addEventListener('click', () => {
       const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
       if (!isDeviceTrusted) {
-        if (bankingRiskAlert) {
-          bankingRiskAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          bankingRiskAlert.style.animation = 'pulse 1s infinite alternate';
-          setTimeout(() => {
-            bankingRiskAlert.style.animation = '';
-          }, 3000);
-        }
-        showToast('Alerta Activa: Dispositivo no confiable.', 'error');
+        showToast('Dispositivo no confiable detectado.', 'error');
         addAuditLog('Revisión de Alertas: Detectado dispositivo no seguro.', 'val-danger');
       } else if (cardBlocked) {
         showToast('Alerta Activa: Tarjeta bloqueada.', 'error');

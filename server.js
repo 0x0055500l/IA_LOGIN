@@ -3,7 +3,6 @@ const path = require('path');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { buildFaceSignature, calculateFaceSimilarity } = require('./faceMatcher');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,8 +14,6 @@ const JWT_EXPIRATION = '1h'; // Token expires in 1 hour
 
 // Token blacklist (for logout - in production, use Redis)
 const tokenBlacklist = new Set();
-const FACE_MATCH_THRESHOLD = 0.60; // Imágenes reales de cámara producen similitud >= 0.70
-const REGISTERED_FACE_SIGNATURES = new Map();
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
@@ -505,87 +502,6 @@ app.post('/api/chat', authenticateToken, (req, res) => {
   // The chatbot logic runs client-side using the expert system,
   // but this endpoint validates the session is active
   res.json({ authenticated: true, user: req.user.name });
-});
-
-// Fraud check — now protected
-app.post('/api/fraud-check', authenticateToken, (req, res) => {
-  const { amount, hour, location, lastLocation, faceVerified, faceImage } = req.body;
-
-  const parsedAmount = Number(amount || 0);
-  const parsedHour = Number(String(hour || '00:00').split(':')[0]);
-  const isSuspiciousHour = parsedHour >= 23 || parsedHour <= 5;
-  const isUnusualAmount = parsedAmount > 3000;
-  const isImpossibleTravel = location && lastLocation && location !== lastLocation;
-
-  const userEmail = req.user?.email || 'unknown';
-  const capturedFaceSignature = faceImage ? buildFaceSignature(faceImage) : null;
-
-  let faceSimilarity = 0;
-  let faceMatch = Boolean(faceVerified);
-  let faceDebug = { hasImage: !!faceImage, hasSignature: !!capturedFaceSignature };
-
-  if (capturedFaceSignature) {
-    faceDebug.isValidFormat = capturedFaceSignature.isValidFormat;
-    faceDebug.dataLen = capturedFaceSignature.dataLen;
-    faceDebug.uniqueChars = capturedFaceSignature.uniqueChars;
-    faceDebug.isRealCameraImage = capturedFaceSignature.isRealCameraImage;
-
-    if (capturedFaceSignature.isRealCameraImage) {
-      // Imagen válida de cámara real detectada
-      const existingFaceSignature = REGISTERED_FACE_SIGNATURES.get(userEmail);
-
-      if (!existingFaceSignature) {
-        // Primera verificación: registrar la firma y aprobar
-        REGISTERED_FACE_SIGNATURES.set(userEmail, capturedFaceSignature);
-        faceSimilarity = 1.0;
-        faceMatch = true;
-        console.log(`[FaceCheck] Primera captura de ${userEmail} → firma registrada. faceMatch=true`);
-      } else {
-        // Verificaciones posteriores: calcular similitud
-        faceSimilarity = calculateFaceSimilarity(capturedFaceSignature, existingFaceSignature);
-        faceMatch = faceSimilarity >= FACE_MATCH_THRESHOLD;
-        console.log(`[FaceCheck] ${userEmail} → similitud=${faceSimilarity.toFixed(3)}, umbral=${FACE_MATCH_THRESHOLD}, faceMatch=${faceMatch}`);
-
-        // Si la nueva imagen es más grande (mejor calidad), actualizar la firma registrada
-        if (capturedFaceSignature.dataLen > existingFaceSignature.dataLen) {
-          REGISTERED_FACE_SIGNATURES.set(userEmail, capturedFaceSignature);
-        }
-      }
-    } else {
-      // Imagen vacía o negra (cámara no disponible)
-      console.warn(`[FaceCheck] ${userEmail} → imagen no válida (tamaño=${capturedFaceSignature.dataLen}, entropy=${capturedFaceSignature.uniqueChars})`);
-      faceMatch = false;
-      faceSimilarity = 0;
-    }
-  }
-
-  let score = 0;
-  let reasons = [];
-
-  if (isUnusualAmount) {
-    score += 35;
-    reasons.push('Monto inusual para el perfil.');
-  }
-  if (isImpossibleTravel) {
-    score += 35;
-    reasons.push('Geolocalización incompatible con la última compra.');
-  }
-  if (isSuspiciousHour) {
-    score += 20;
-    reasons.push('Horario sospechoso para una transacción.');
-  }
-  if (!faceMatch) {
-    score += 20;
-    reasons.push('No se confirmó la verificación facial.');
-  }
-
-  if (score >= 70) {
-    return res.json({ score: 85, level: 'alto', decision: 'Verificación facial obligatoria antes de aprobar.', reasons, legitimateUser: true, faceMatch, faceSimilarity, _debug: faceDebug });
-  }
-  if (score >= 40) {
-    return res.json({ score: 55, level: 'medio', decision: 'Verificación facial obligatoria antes de aprobar.', reasons, legitimateUser: true, faceMatch, faceSimilarity, _debug: faceDebug });
-  }
-  res.json({ score: 12, level: 'bajo', decision: 'Transacción aprobada.', reasons: ['El patrón de riesgo se considera aceptable.'], legitimateUser: true, faceMatch, faceSimilarity, _debug: faceDebug });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
