@@ -115,15 +115,41 @@
     const score = activatedRules.reduce((sum, rule) => sum + rule.score, 0);
 
     let riskLevel = 'Bajo';
-    if (score >= 80) riskLevel = 'Alto';
-    else if (score >= 45) riskLevel = 'Medio';
+    if (score >= 95 || activatedRules.length >= 5) riskLevel = 'Crítico';
+    else if (score >= 70 || activatedRules.length >= 3) riskLevel = 'Alto';
+    else if (score >= 35) riskLevel = 'Medio';
 
     const isSuspicious = riskLevel !== 'Bajo' || activatedRules.length > 0;
-    const explanation = riskLevel === 'Alto'
-      ? 'Riesgo alto: la operación mezcla varios factores de fraude y debe bloquearse o revisarse.'
-      : riskLevel === 'Medio'
-        ? 'Riesgo medio: la operación presenta señales moderadas de anormalidad y requiere revisión.'
-        : 'Riesgo bajo: el patrón es coherente con el historial del cliente.';
+    const activatedNames = activatedRules.map((rule) => rule.name).join(', ');
+    const explanation = riskLevel === 'Crítico'
+      ? `Riesgo crítico: se activaron reglas como ${activatedNames}. La operación presenta un patrón de fraude muy probable.`
+      : riskLevel === 'Alto'
+        ? `Riesgo alto: se detectaron señales de fraude (${activatedNames}) y la transacción debe bloquearse o revisarse.`
+        : riskLevel === 'Medio'
+          ? `Riesgo medio: se identificaron indicios de anomalía (${activatedNames}) y requieren revisión.`
+          : 'Riesgo bajo: el patrón es coherente con el historial del cliente.';
+    const recommendations = riskLevel === 'Crítico'
+      ? [
+          'Bloquee la tarjeta y cancele la operación inmediatamente.',
+          'Solicite validación biométrica o Face ID antes de cualquier autorización adicional.',
+          'Revise el destino, la IP y el dispositivo para confirmar el origen del movimiento.'
+        ]
+      : riskLevel === 'Alto'
+        ? [
+            'Bloquee temporalmente la tarjeta para evitar nuevas operaciones.',
+            'Valide la identidad del usuario con Face ID o un canal alternativo.',
+            'Revise manualmente el historial de movimientos recientes.'
+          ]
+        : riskLevel === 'Medio'
+          ? [
+              'Mantenga la transacción en revisión y monitoree la actividad de la cuenta.',
+              'Confirme si el dispositivo y la ubicación son habituales para el titular.',
+              'Solicite verificación adicional si la operación continúa.'
+            ]
+          : [
+              'Permita la operación y continúe con el monitoreo estándar.',
+              'Mantenga el análisis de comportamiento en modo seguimiento.'
+            ];
 
     return {
       riskLevel,
@@ -131,11 +157,36 @@
       score,
       rulesActivated: activatedRules,
       explanation,
-      explanationEn: riskLevel === 'Alto'
-        ? 'High risk: the transaction combines several fraud signals and should be blocked or reviewed.'
-        : riskLevel === 'Medio'
-          ? 'Medium risk: the transaction shows moderate anomaly signals and needs review.'
-          : 'Low risk: the pattern is consistent with the customer’s history.'
+      explanationEn: riskLevel === 'Crítico'
+        ? `Critical risk: rules such as ${activatedRules.map((rule) => rule.nameEn).join(', ')} were triggered. The operation shows a highly probable fraud pattern.`
+        : riskLevel === 'Alto'
+          ? `High risk: fraud signals (${activatedRules.map((rule) => rule.nameEn).join(', ')}) were detected and the transaction should be blocked or reviewed.`
+          : riskLevel === 'Medio'
+            ? `Medium risk: anomaly indicators (${activatedRules.map((rule) => rule.nameEn).join(', ')}) were identified and require review.`
+            : 'Low risk: the pattern is consistent with the customer’s history.',
+      recommendations,
+      recommendationsEn: riskLevel === 'Crítico'
+        ? [
+            'Block the card and cancel the operation immediately.',
+            'Request biometric or Face ID validation before any additional authorization.',
+            'Review the destination, IP, and device to confirm the origin of the movement.'
+          ]
+        : riskLevel === 'Alto'
+          ? [
+              'Temporarily block the card to prevent new operations.',
+              'Validate the user identity with Face ID or an alternate channel.',
+              'Manually review the recent transaction history.'
+            ]
+          : riskLevel === 'Medio'
+            ? [
+                'Keep the transaction under review and monitor account activity.',
+                'Confirm whether the device and location are usual for the account holder.',
+                'Request additional verification if the operation continues.'
+              ]
+            : [
+                'Allow the operation and continue standard monitoring.',
+                'Keep behavior analysis in follow-up mode.'
+              ]
     };
   }
 
