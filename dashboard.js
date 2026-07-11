@@ -2354,6 +2354,7 @@ function setupInteractiveBanking(user) {
       webcamVideo.srcObject = stream;
       await webcamVideo.play();
       cameraStream = stream;
+      console.log('Cámara inicializada exitosamente');
       addAuditLog('Cámara inicializada. Presiona Capturar rostro para continuar.', 'val-success');
     } catch (error) {
       console.error('Error al inicializar webcam:', error);
