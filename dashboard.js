@@ -2400,20 +2400,24 @@ function setupInteractiveBanking(user) {
     captureFaceBtn.addEventListener('click', captureFace);
   }
 
-  if (btnValidateAccess && videoWebcam) {
-    btnValidateAccess.addEventListener('click', () => {
-      console.log('Intentando encender la cámara...');
-      navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
-        .then(stream => {
-          videoWebcam.srcObject = stream;
-          videoWebcam.play();
-          console.log('Cámara encendida correctamente.');
-        })
-        .catch(err => {
-          console.error('Error al acceder a la cámara web:', err);
-          alert('No se pudo activar la cámara. Revisa los permisos del navegador.');
-        });
-    });
+  // Referencias locales directas para asegurar que se ejecute
+  const btnValidarLocal = document.getElementById('btn-validar-acceso');
+  const videoWebcamLocal = document.getElementById('webcam');
+
+  if (btnValidarLocal && videoWebcamLocal) {
+      btnValidarLocal.addEventListener('click', () => {
+          console.log('Intentando encender la cámara...');
+          navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
+              .then(stream => {
+                  videoWebcamLocal.srcObject = stream;
+                  videoWebcamLocal.play();
+                  console.log('Cámara encendida correctamente.');
+              })
+              .catch(err => {
+                  console.error('Error al acceder a la cámara web:', err);
+                  alert('No se pudo activar la cámara. Revisa los permisos del navegador o si otra app la usa.');
+              });
+      });
   }
 
   // Block Card button
