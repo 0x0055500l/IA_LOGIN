@@ -2335,47 +2335,41 @@ function setupInteractiveBanking(user) {
   // Validate access button
   let cameraStream = null;
 
-  const hideCameraModal = () => {
-    if (cameraModal) cameraModal.classList.add('hidden');
-    if (accessCameraVideo) {
-      accessCameraVideo.pause();
-      accessCameraVideo.srcObject = null;
+  const hideCamera = () => {
+    if (webcamVideo) {
+      webcamVideo.pause();
+      webcamVideo.srcObject = null;
     }
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop());
       cameraStream = null;
     }
-    if (cameraModalMessage) {
-      cameraModalMessage.textContent = '';
-      cameraModalMessage.className = 'modal-message';
+    if (cameraMessage) {
+      cameraMessage.textContent = '';
+      cameraMessage.className = 'modal-message';
     }
   };
 
-  const showCameraModal = async () => {
-    if (cameraModal) cameraModal.classList.remove('hidden');
-    if (!accessCameraVideo) return;
+  const initializeWebcam = async () => {
+    if (!webcamVideo) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-      accessCameraVideo.srcObject = stream;
-      await accessCameraVideo.play();
+      webcamVideo.srcObject = stream;
+      await webcamVideo.play();
       cameraStream = stream;
-      if (cameraModalMessage) {
-        cameraModalMessage.textContent = 'Cámara activada. Presiona Capturar rostro.';
-        cameraModalMessage.className = 'modal-message';
+      if (cameraMessage) {
+        cameraMessage.textContent = 'Cámara activada. Presiona Capturar rostro.';
+        cameraMessage.className = 'modal-message';
       }
     } catch (error) {
-      if (cameraModalMessage) {
-        cameraModalMessage.textContent = 'No se pudo acceder a la cámara. Verifica permisos o usa otro navegador.';
-        cameraModalMessage.className = 'modal-message error';
+      if (cameraMessage) {
+        cameraMessage.textContent = 'No se pudo acceder a la cámara. Verifica permisos o usa otro navegador.';
+        cameraMessage.className = 'modal-message error';
       }
       console.error('Error al activar cámara:', error);
     }
   };
-
-  if (closeCameraModal) {
-    closeCameraModal.addEventListener('click', hideCameraModal);
-  }
 
   if (captureFaceBtn) {
     captureFaceBtn.addEventListener('click', () => {
@@ -2473,7 +2467,7 @@ function setupInteractiveBanking(user) {
         statusCardVal.className = 'status-value val-success';
       }
 
-      showCameraModal();
+      await initializeWebcam();
     });
   }
 
