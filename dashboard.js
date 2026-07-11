@@ -2330,111 +2330,73 @@ function setupInteractiveBanking(user) {
     });
   }
 
-  // Validate access button
+  // Face verification camera logic
   let cameraStream = null;
 
-  const hideCamera = () => {
-    if (webcamVideo) {
+  const stopWebcam = () => {
+    if (webcamVideo && webcamVideo.srcObject) {
       webcamVideo.pause();
+      const tracks = webcamVideo.srcObject.getTracks();
+      tracks.forEach((track) => track.stop());
       webcamVideo.srcObject = null;
     }
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop());
       cameraStream = null;
     }
-    if (cameraMessage) {
-      cameraMessage.textContent = '';
-      cameraMessage.className = 'modal-message';
-    }
   };
 
-  const initializeWebcam = async () => {
+  const startWebcam = async () => {
     if (!webcamVideo) return;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       webcamVideo.srcObject = stream;
       await webcamVideo.play();
       cameraStream = stream;
-      if (cameraMessage) {
-        cameraMessage.textContent = 'Cámara activada. Presiona Capturar rostro.';
-        cameraMessage.className = 'modal-message';
-      }
+      addAuditLog('Cámara inicializada. Presiona Capturar rostro para continuar.', 'val-success');
     } catch (error) {
-      if (cameraMessage) {
-        cameraMessage.textContent = 'No se pudo acceder a la cámara. Verifica permisos o usa otro navegador.';
-        cameraMessage.className = 'modal-message error';
-      }
-      console.error('Error al activar cámara:', error);
+      console.error('Error al inicializar webcam:', error);
+      addAuditLog('No se pudo acceder a la cámara. Verifica permisos o configura el navegador.', 'val-danger');
     }
   };
 
+  const captureFace = () => {
+    if (!webcamVideo || !webcamVideo.srcObject) {
+      addAuditLog('La cámara no está disponible. Inicia primero la validación de acceso.', 'val-danger');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = webcamVideo.videoWidth || 640;
+    canvas.height = webcamVideo.videoHeight || 480;
+    const context = canvas.getContext('2d');
+    context.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+    const imageData = canvas.toDataURL('image/png');
+
+    addAuditLog('Rostro capturado correctamente. Iniciando verificación facial...', 'val-success');
+    addAuditLog('[SISTEMA EXPERTO] Evaluando regla: verificacion_dispositivo_biometrico', 'val-success');
+    addAuditLog('[ÉXITO] Rostro coincide con el titular. Acceso autorizado.', 'val-success');
+
+    if (btnValidateAccess) {
+      btnValidateAccess.textContent = 'Acceso Verificado';
+      btnValidateAccess.classList.remove('btn-primary');
+      btnValidateAccess.classList.add('btn-success');
+      btnValidateAccess.disabled = true;
+    }
+
+    updateCardAuthenticationState(
+      'Completada',
+      '✓ Validación biométrica aprobada. Estado de la tarjeta actualizado a Completada.',
+      'Validación biométrica exitosa. La tarjeta queda operativa.',
+      'success'
+    );
+    saveTransaction('Validación Biométrica', null, 'Aprobado');
+    console.log('Face capture data:', imageData);
+  };
+
   if (captureFaceBtn) {
-    captureFaceBtn.addEventListener('click', () => {
-      if (!webcamVideo || !webcamVideo.srcObject) {
-        if (cameraMessage) {
-          cameraMessage.textContent = 'La cámara no está disponible. Intenta de nuevo.';
-          cameraMessage.className = 'modal-message error';
-        }
-        return;
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = webcamVideo.videoWidth || 320;
-      canvas.height = webcamVideo.videoHeight || 240;
-      const context = canvas.getContext('2d');
-      context.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL('image/png');
-
-      if (cameraMessage) {
-        cameraMessage.textContent = 'Rostro capturado correctamente.';
-        cameraMessage.className = 'modal-message success';
-      }
-
-      const biometricSuccessMessage = '[ÉXITO] Rostro coincide con el titular. Acceso autorizado. Estado: Operativo y Auditable.';
-      const auditLines = [
-        '[INFO] Iniciando verificación biométrica...',
-        '[INFO] Extrayendo puntos característicos del rostro...',
-        '[SISTEMA EXPERTO] Evaluando regla: verificacion_dispositivo_biometrico',
-        biometricSuccessMessage
-      ];
-
-      if (bankingAuditList) {
-        bankingAuditList.innerHTML = '';
-        const logEntry = document.createElement('li');
-        logEntry.className = 'audit-item val-success';
-        logEntry.style.whiteSpace = 'pre-wrap';
-        logEntry.textContent = auditLines.join('\n');
-        bankingAuditList.appendChild(logEntry);
-      }
-
-      if (btnValidateAccess) {
-        btnValidateAccess.textContent = 'Acceso Verificado';
-        btnValidateAccess.classList.remove('btn-primary');
-        btnValidateAccess.classList.add('btn-success');
-        btnValidateAccess.disabled = true;
-      }
-
-      const validationSucceeded = auditLines.includes(biometricSuccessMessage);
-      if (validationSucceeded) {
-        updateCardAuthenticationState(
-          'Completada',
-          '✓ Validación biométrica aprobada. Estado de la tarjeta actualizado a Completada.',
-          'Validación biométrica exitosa. La tarjeta queda operativa.',
-          'success'
-        );
-        saveTransaction('Validación Biométrica', null, 'Aprobado');
-      } else {
-        updateCardAuthenticationState(
-          'Pendiente',
-          '✗ Validación biométrica fallida. La tarjeta permanece pendiente.',
-          'Validación biométrica fallida. Transacciones bloqueadas.',
-          'error'
-        );
-      }
-
-      console.log('Face capture data:', imageData);
-    });
+    captureFaceBtn.addEventListener('click', captureFace);
   }
 
   if (btnValidateAccess) {
@@ -2465,7 +2427,7 @@ function setupInteractiveBanking(user) {
         statusCardVal.className = 'status-value val-success';
       }
 
-      await initializeWebcam();
+      await startWebcam();
     });
   }
 
