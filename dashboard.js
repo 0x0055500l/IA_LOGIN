@@ -1990,17 +1990,50 @@ function setupInteractiveBanking(user) {
   renderTransactionsTable();
   renderAnalysisDashboard();
 
+  function getCurrentCardStatus() {
+    const cards = getCards();
+    const activeCard = cards.find((card) => card && ['Activa', 'Completada', 'Pendiente', 'Bloqueada'].includes(card.status)) || cards[0];
+    return window.cardUtils?.normalizeCardStatus?.(activeCard?.status) || 'Pendiente';
+  }
+
+  function updateCardAuthenticationState(nextStatus, auditText, toastMessage, toastType = 'success') {
+    const cards = getCards();
+    if (!cards.length) return false;
+
+    const activeCard = cards.find((card) => card && ['Activa', 'Completada', 'Pendiente', 'Bloqueada'].includes(card.status)) || cards[0];
+    if (!activeCard) return false;
+
+    const previousStatus = activeCard.status;
+    activeCard.status = nextStatus;
+    saveCards(cards);
+    window.dispatchEvent(new Event('card_state_changed'));
+    updateCardStateFromStorage();
+
+    if (auditText) {
+      addAuditLog(auditText, toastType === 'error' ? 'val-danger' : 'val-success');
+    }
+
+    if (toastMessage) {
+      showToast(toastMessage, toastType);
+    }
+
+    return previousStatus !== nextStatus;
+  }
+
   // ── Sincronización de estado de tarjeta con Configuración ──
   function updateCardStateFromStorage() {
     try {
       const cards = getCards();
-      const status = cards.length > 0 ? cards[0].status : 'Pendiente';
-      
-      cardBlocked = (status === 'Bloqueada' || status === 'Pendiente');
+      const status = getCurrentCardStatus();
+
+      cardBlocked = status === 'Bloqueada' || status === 'Pendiente' || status !== 'Completada';
       balance = getActiveCardBalance();
 
       if (statusCardVal) {
-        if (status === 'Activa') {
+        if (status === 'Completada') {
+          statusCardVal.textContent = '✓ Completada';
+          statusCardVal.className = 'status-value val-success';
+        } else if (status === 'Activa') {
           statusCardVal.textContent = '✓ Activa';
           statusCardVal.className = 'status-value val-success';
         } else if (status === 'Bloqueada') {
@@ -2011,9 +2044,14 @@ function setupInteractiveBanking(user) {
           statusCardVal.className = 'status-value val-pending';
         }
       }
-      if ((status === 'Bloqueada' || status === 'Pendiente') && statusFaceVal) {
-        statusFaceVal.textContent = 'Pendiente';
-        statusFaceVal.className = 'status-value val-pending';
+      if (statusFaceVal) {
+        if (status === 'Completada') {
+          statusFaceVal.textContent = '✓ Completada';
+          statusFaceVal.className = 'status-value val-success';
+        } else {
+          statusFaceVal.textContent = 'Pendiente';
+          statusFaceVal.className = 'status-value val-pending';
+        }
       }
       updateBalanceAndSecurityUI();
     } catch (e) {
@@ -2131,14 +2169,16 @@ function setupInteractiveBanking(user) {
         cameraModalMessage.className = 'modal-message success';
       }
 
+      const biometricSuccessMessage = '[ÉXITO] Rostro coincide con el titular. Acceso autorizado. Estado: Operativo y Auditable.';
+      const auditLines = [
+        '[INFO] Iniciando verificación biométrica...',
+        '[INFO] Extrayendo puntos característicos del rostro...',
+        '[SISTEMA EXPERTO] Evaluando regla: verificacion_dispositivo_biometrico',
+        biometricSuccessMessage
+      ];
+
       if (bankingAuditList) {
         bankingAuditList.innerHTML = '';
-        const auditLines = [
-          '[INFO] Iniciando verificación biométrica...',
-          '[INFO] Extrayendo puntos característicos del rostro...',
-          '[SISTEMA EXPERTO] Evaluando regla: verificacion_dispositivo_biometrico',
-          '[ÉXITO] Rostro coincide con el titular. Acceso autorizado. Estado: Operativo y Auditable.'
-        ];
         const logEntry = document.createElement('li');
         logEntry.className = 'audit-item val-success';
         logEntry.style.whiteSpace = 'pre-wrap';
@@ -2151,6 +2191,24 @@ function setupInteractiveBanking(user) {
         btnValidateAccess.classList.remove('btn-primary');
         btnValidateAccess.classList.add('btn-success');
         btnValidateAccess.disabled = true;
+      }
+
+      const validationSucceeded = auditLines.includes(biometricSuccessMessage);
+      if (validationSucceeded) {
+        updateCardAuthenticationState(
+          'Completada',
+          '✓ Validación biométrica aprobada. Estado de la tarjeta actualizado a Completada.',
+          'Validación biométrica exitosa. La tarjeta queda operativa.',
+          'success'
+        );
+        saveTransaction('Validación Biométrica', null, 'Aprobado');
+      } else {
+        updateCardAuthenticationState(
+          'Pendiente',
+          '✗ Validación biométrica fallida. La tarjeta permanece pendiente.',
+          'Validación biométrica fallida. Transacciones bloqueadas.',
+          'error'
+        );
       }
 
       console.log('Face capture data:', imageData);
@@ -2262,6 +2320,14 @@ function setupInteractiveBanking(user) {
     if (!isDeviceTrusted) {
       showToast('Dispositivo no confiable detectado. Revise su configuración.', 'warning');
       addAuditLog('Dispositivo no confiable detectado en simulación.', 'val-warning');
+    }
+
+    const currentCardStatus = getCurrentCardStatus();
+    if (currentCardStatus !== 'Completada') {
+      showToast('Transacción denegada: complete la validación biométrica para habilitar la tarjeta.', 'error');
+      addAuditLog(`${denyLabel} denegada: validación biométrica pendiente o fallida.`, 'val-danger');
+      saveTransaction(label, amountVal, 'Denegado');
+      return false;
     }
 
     if (limit && amountVal > limit) {

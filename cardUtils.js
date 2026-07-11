@@ -46,13 +46,25 @@
     return Number(fallback) || 0;
   }
 
+  function normalizeCardStatus(status) {
+    const value = String(status || '').trim();
+    if (!value) return 'Pendiente';
+    return value;
+  }
+
+  function isCardTransactionAllowed(status, biometricValidated = false) {
+    return normalizeCardStatus(status) === 'Completada' && Boolean(biometricValidated);
+  }
+
   const api = {
     luhnCheck,
     isExpiryFuture,
     isCvvValid,
     isCardFormComplete,
     generateInitialAvailableAmount,
-    getActiveCardBalance
+    getActiveCardBalance,
+    normalizeCardStatus,
+    isCardTransactionAllowed
   };
 
   root.cardUtils = api;
