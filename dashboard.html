@@ -40,7 +40,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5" /><path d="M6 10.5V20h12v-9.5" /></svg>
           Inicio
         </a>
-        <a href="#" id="navAnalisis" data-i18n="nav_analisis">
+        <a href="#" id="btn-analisis" data-i18n="nav_analisis">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16" /><path d="M7 16V9" /><path d="M12 16V5" /><path d="M17 16v-3" /></svg>
           Análisis
         </a>
@@ -122,6 +122,56 @@
             <strong id="systemState">Operativo</strong>
             <span data-i18n="stat_status_sub">Sin interrupciones</span>
           </article>
+        </section>
+
+        <section id="seccion-analisis" class="hidden panel analysis-section">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Insights del Motor</p>
+              <h3>Análisis Analítico del Motor de Inferencia</h3>
+            </div>
+          </div>
+
+          <div class="analysis-metrics-grid">
+            <article class="metric-card">
+              <span>Eficiencia de Detección</span>
+              <strong>99.2%</strong>
+            </article>
+            <article class="metric-card">
+              <span>Tiempo Promedio de Inferencia</span>
+              <strong>14ms</strong>
+            </article>
+            <article class="metric-card">
+              <span>Falsos Positivos</span>
+              <strong>0.4%</strong>
+            </article>
+          </div>
+
+          <div class="analysis-charts-grid">
+            <div class="chart-card">
+              <h4>Intentos de Fraude Detectados por Hora</h4>
+              <div class="bar-chart">
+                <div class="bar-item"><strong>01h</strong><div class="bar bar-25"></div></div>
+                <div class="bar-item"><strong>04h</strong><div class="bar bar-40"></div></div>
+                <div class="bar-item"><strong>08h</strong><div class="bar bar-70"></div></div>
+                <div class="bar-item"><strong>12h</strong><div class="bar bar-85"></div></div>
+                <div class="bar-item"><strong>16h</strong><div class="bar bar-60"></div></div>
+                <div class="bar-item"><strong>20h</strong><div class="bar bar-50"></div></div>
+              </div>
+            </div>
+
+            <div class="chart-card donut-panel">
+              <h4>Distribución de Alertas</h4>
+              <div class="donut-graphic">
+                <div class="donut-circle"></div>
+                <div class="donut-labels">
+                  <span><strong>46%</strong> Monto sospechoso</span>
+                  <span><strong>28%</strong> Ubicación inusual</span>
+                  <span><strong>26%</strong> Suplantación de identidad</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="content-grid">

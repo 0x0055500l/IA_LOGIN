@@ -628,6 +628,119 @@ body::before {
   pointer-events: none;
 }
 
+.hidden {
+  display: none !important;
+}
+
+.analysis-section {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15);
+}
+
+.analysis-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-card span {
+  color: var(--muted);
+}
+
+.metric-card strong {
+  font-size: 1.45rem;
+}
+
+.analysis-charts-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 16px;
+}
+
+.chart-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.chart-card h4 {
+  margin-bottom: 14px;
+}
+
+.bar-chart {
+  display: grid;
+  gap: 14px;
+}
+
+.bar-item {
+  display: grid;
+  gap: 8px;
+}
+
+.bar-item strong {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.bar {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.bar-25 { width: 25%; background: #0ea5e9; }
+.bar-40 { width: 40%; background: #38bdf8; }
+.bar-70 { width: 70%; background: #38bdf8; }
+.bar-85 { width: 85%; background: #22c55e; }
+.bar-60 { width: 60%; background: #22c55e; }
+.bar-50 { width: 50%; background: #22c55e; }
+
+.donut-graphic {
+  display: grid;
+  gap: 18px;
+  align-items: center;
+}
+
+.donut-circle {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: conic-gradient(#22c55e 0 46%, #38bdf8 46% 74%, #fb7185 74% 100%);
+  margin: 0 auto;
+  position: relative;
+}
+
+.donut-circle::before {
+  content: '';
+  position: absolute;
+  inset: 28px;
+  background: var(--bg);
+  border-radius: 50%;
+}
+
+.donut-labels {
+  display: grid;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.donut-labels span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .chat-fab svg {
   width: 26px;
   height: 26px;

@@ -355,7 +355,7 @@ function initializeDashboard(user, expiresAt) {
     });
 
     // Incomplete routes show nice warning; historial loads the historial module
-    ['navAnalisis', 'navReglas'].forEach(id => {
+    ['btn-analisis', 'navReglas'].forEach(id => {
       const btn = document.getElementById(id);
       if (btn) {
         btn.addEventListener('click', (e) => {
