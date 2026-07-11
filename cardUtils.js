@@ -66,8 +66,18 @@
     return { valid: true, message: '', amount };
   }
 
+  function isCardActiveStatus(status) {
+    const normalizedStatus = normalizeCardStatus(status);
+    return normalizedStatus === 'Activa' || normalizedStatus === 'Completada';
+  }
+
+  function isCardBlockedStatus(status) {
+    const normalizedStatus = normalizeCardStatus(status);
+    return normalizedStatus === 'Bloqueada' || normalizedStatus === 'Pendiente' || !isCardActiveStatus(normalizedStatus);
+  }
+
   function isCardTransactionAllowed(status, biometricValidated = false) {
-    return normalizeCardStatus(status) === 'Completada' && Boolean(biometricValidated);
+    return isCardActiveStatus(status) && Boolean(biometricValidated);
   }
 
   const api = {
@@ -79,6 +89,8 @@
     getActiveCardBalance,
     normalizeCardStatus,
     validateTransactionAmount,
+    isCardActiveStatus,
+    isCardBlockedStatus,
     isCardTransactionAllowed
   };
 

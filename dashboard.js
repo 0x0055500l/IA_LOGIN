@@ -599,13 +599,13 @@ function saveCards(list) {
 
 function isCardActive() {
   const cards = getCards();
-  const activeCard = cards.find((card) => card && card.status === 'Activa');
+  const activeCard = cards.find((card) => card && window.cardUtils?.isCardActiveStatus?.(card.status));
   return Boolean(activeCard);
 }
 
 function getActiveCard() {
   const cards = getCards();
-  return cards.find((card) => card && card.status === 'Activa') || cards[0] || null;
+  return cards.find((card) => card && window.cardUtils?.isCardActiveStatus?.(card.status)) || cards[0] || null;
 }
 
 function getActiveCardBalance() {
@@ -615,7 +615,7 @@ function getActiveCardBalance() {
 
 function updateActiveCardBalance(newBalance) {
   const cards = getCards();
-  const activeCard = cards.find((card) => card && card.status === 'Activa') || cards[0];
+  const activeCard = cards.find((card) => card && window.cardUtils?.isCardActiveStatus?.(card.status)) || cards[0];
   if (!activeCard) return;
   activeCard.availableAmount = Number(newBalance);
   saveCards(cards);
@@ -2026,7 +2026,8 @@ function setupInteractiveBanking(user) {
       const cards = getCards();
       const status = getCurrentCardStatus();
 
-      cardBlocked = status === 'Bloqueada' || status === 'Pendiente' || status !== 'Completada';
+      const isBlockedByStatus = window.cardUtils?.isCardBlockedStatus?.(status);
+      cardBlocked = typeof isBlockedByStatus === 'boolean' ? isBlockedByStatus : (status === 'Bloqueada' || status === 'Pendiente' || status !== 'Completada');
       balance = getActiveCardBalance();
 
       if (statusCardVal) {
