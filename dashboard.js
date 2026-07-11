@@ -2081,7 +2081,7 @@ function setupInteractiveBanking(user) {
   const cardExpiry = document.getElementById('cardExpiry');
   const cardCvv = document.getElementById('cardCvv');
   const btnValidateAccess = document.getElementById('btn-validar-acceso');
-  const webcamVideo = document.getElementById('webcam');
+  const videoWebcam = document.getElementById('webcam');
   const captureFaceBtn = document.getElementById('btn-capturar-rostro');
   const cameraMessage = document.getElementById('cameraModalMessage');
   const btnBlockCard = document.getElementById('btnBlockCard');
@@ -2334,11 +2334,11 @@ function setupInteractiveBanking(user) {
   let cameraStream = null;
 
   const stopWebcam = () => {
-    if (webcamVideo && webcamVideo.srcObject) {
-      webcamVideo.pause();
-      const tracks = webcamVideo.srcObject.getTracks();
+    if (videoWebcam && videoWebcam.srcObject) {
+      videoWebcam.pause();
+      const tracks = videoWebcam.srcObject.getTracks();
       tracks.forEach((track) => track.stop());
-      webcamVideo.srcObject = null;
+      videoWebcam.srcObject = null;
     }
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop());
@@ -2347,12 +2347,12 @@ function setupInteractiveBanking(user) {
   };
 
   const startWebcam = async () => {
-    if (!webcamVideo) return;
+    if (!videoWebcam) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      webcamVideo.srcObject = stream;
-      await webcamVideo.play();
+      videoWebcam.srcObject = stream;
+      await videoWebcam.play();
       cameraStream = stream;
       console.log('Cámara inicializada exitosamente');
       addAuditLog('Cámara inicializada. Presiona Capturar rostro para continuar.', 'val-success');
@@ -2363,16 +2363,16 @@ function setupInteractiveBanking(user) {
   };
 
   const captureFace = () => {
-    if (!webcamVideo || !webcamVideo.srcObject) {
+    if (!videoWebcam || !videoWebcam.srcObject) {
       addAuditLog('La cámara no está disponible. Inicia primero la validación de acceso.', 'val-danger');
       return;
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = webcamVideo.videoWidth || 640;
-    canvas.height = webcamVideo.videoHeight || 480;
+    canvas.width = videoWebcam.videoWidth || 640;
+    canvas.height = videoWebcam.videoHeight || 480;
     const context = canvas.getContext('2d');
-    context.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+    context.drawImage(videoWebcam, 0, 0, canvas.width, canvas.height);
     const imageData = canvas.toDataURL('image/png');
 
     addAuditLog('Rostro capturado correctamente. Iniciando verificación facial...', 'val-success');
@@ -2400,35 +2400,19 @@ function setupInteractiveBanking(user) {
     captureFaceBtn.addEventListener('click', captureFace);
   }
 
-  if (btnValidateAccess) {
-    btnValidateAccess.addEventListener('click', async () => {
-      if (!isCardActive()) {
-        showToast('Operación denegada: La tarjeta no está activa.', 'error');
-        addAuditLog('Intento de acceso denegado: La tarjeta no está activa.', 'val-danger');
-        return;
-      }
-
-      const cardNumVal = cardNumber ? cardNumber.value.replace(/\s/g, '') : '';
-      const expiryVal = cardExpiry ? cardExpiry.value : '';
-      const cvvVal = cardCvv ? cardCvv.value : '';
-
-      const isCardValid = cardNumVal.length === 16 && expiryVal.length === 5 && cvvVal.length === 3;
-      if (!isCardValid) {
-        if (statusCardVal) {
-          statusCardVal.textContent = '✗ Incorrecta';
-          statusCardVal.className = 'status-value val-danger';
-        }
-        showToast('Datos de tarjeta incorrectos.', 'error');
-        addAuditLog('Error: Formato de tarjeta inválido.', 'val-danger');
-        return;
-      }
-
-      if (statusCardVal) {
-        statusCardVal.textContent = '✓ Validada';
-        statusCardVal.className = 'status-value val-success';
-      }
-
-      await startWebcam();
+  if (btnValidateAccess && videoWebcam) {
+    btnValidateAccess.addEventListener('click', () => {
+      console.log('Intentando encender la cámara...');
+      navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
+        .then(stream => {
+          videoWebcam.srcObject = stream;
+          videoWebcam.play();
+          console.log('Cámara encendida correctamente.');
+        })
+        .catch(err => {
+          console.error('Error al acceder a la cámara web:', err);
+          alert('No se pudo activar la cámara. Revisa los permisos del navegador.');
+        });
     });
   }
 
