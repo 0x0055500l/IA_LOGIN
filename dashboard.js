@@ -267,15 +267,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hideLoader = () => {
     if (sessionLoader) {
       sessionLoader.classList.add('hidden');
-      sessionLoader.style.display = 'none';
     }
   };
 
   const showDashboard = () => {
-    if (dashboardShell) dashboardShell.style.display = '';
-    if (dashboardView) dashboardView.style.display = 'grid';
-    if (settingsView) settingsView.style.display = 'none';
-    if (historialView) historialView.style.display = 'none';
+    if (dashboardView) dashboardView.classList.remove('hidden');
+    if (settingsView) settingsView.classList.add('hidden');
+    if (historialView) historialView.classList.add('hidden');
   };
 
   hideLoader();
@@ -336,9 +334,9 @@ function initializeDashboard(user, expiresAt) {
   if (navInicio && navConfig && dashboardView && settingsView) {
     navInicio.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'grid';
-      settingsView.style.display = 'none';
-      if (historialView) historialView.style.display = 'none';
+      dashboardView.classList.remove('hidden');
+      settingsView.classList.add('hidden');
+      if (historialView) historialView.classList.add('hidden');
       navInicio.classList.add('active');
       navConfig.classList.remove('active');
       const navHistorial = document.getElementById('navHistorial');
@@ -347,9 +345,9 @@ function initializeDashboard(user, expiresAt) {
 
     navConfig.addEventListener('click', (e) => {
       e.preventDefault();
-      settingsView.style.display = 'block';
-      dashboardView.style.display = 'none';
-      if (historialView) historialView.style.display = 'none';
+      settingsView.classList.remove('hidden');
+      dashboardView.classList.add('hidden');
+      if (historialView) historialView.classList.add('hidden');
       navConfig.classList.add('active');
       navInicio.classList.remove('active');
       const navHistorial = document.getElementById('navHistorial');
@@ -375,9 +373,9 @@ function initializeDashboard(user, expiresAt) {
         e.preventDefault();
 
         // Show historial view and hide others
-        if (historialView) historialView.style.display = 'block';
-        if (dashboardView) dashboardView.style.display = 'none';
-        if (settingsView) settingsView.style.display = 'none';
+        if (historialView) historialView.classList.remove('hidden');
+        if (dashboardView) dashboardView.classList.add('hidden');
+        if (settingsView) settingsView.classList.add('hidden');
 
         // Update active menu states
         if (navInicio) navInicio.classList.remove('active');
@@ -1429,7 +1427,7 @@ function setupInteractiveBanking(user) {
   // Update Admin-Only Visibility
   const isAdmin = user && user.role === 'admin';
   if (btnReactivateCard) {
-    btnReactivateCard.style.display = isAdmin ? 'block' : 'none';
+    btnReactivateCard.classList.toggle('hidden', !isAdmin);
   }
 
   // Helper to log in local audit log
@@ -1548,7 +1546,7 @@ function setupInteractiveBanking(user) {
         }
       }
       if ((status === 'Bloqueada' || status === 'Pendiente') && statusFaceVal) {
-        statusFaceVal.textContent = 'Validación facial no disponible: tarjeta bloqueada';
+        statusFaceVal.textContent = 'Pendiente';
         statusFaceVal.className = 'status-value val-pending';
       }
       updateBalanceAndSecurityUI();
@@ -1636,7 +1634,7 @@ function setupInteractiveBanking(user) {
         statusCardVal.className = 'status-value val-success';
       }
       showToast('Acceso Bancario Autorizado', 'success');
-      addAuditLog('¡ACCESO AUTORIZADO! Validación de tarjeta, rostro y dispositivo aprobada.', 'val-success');
+      addAuditLog('¡ACCESO AUTORIZADO! Validación de tarjeta y dispositivo aprobada.', 'val-success');
 
       // Log to global system history
       if (window.registrarAccion && typeof window.registrarAccion === 'function') {
