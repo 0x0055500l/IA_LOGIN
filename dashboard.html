@@ -228,6 +228,24 @@
             </div>
           </div>
 
+          <div class="analysis-grid analysis-grid--single">
+            <div class="chart-card chart-card--wide">
+              <div class="chart-card__header">
+                <h4>Resumen visual de transacciones</h4>
+                <span>Aprobadas · Denegadas · Riesgos de fraude</span>
+              </div>
+              <div class="transaction-analysis-chart">
+                <canvas id="transactionStatusChart"></canvas>
+              </div>
+              <div class="analysis-chart-legend">
+                <div><span class="dot dot-green"></span>Aprobadas</div>
+                <div><span class="dot dot-red"></span>Denegadas</div>
+                <div><span class="dot dot-orange"></span>Riesgos sospechosos</div>
+                <div><span class="dot dot-warning"></span>Fraudes</div>
+              </div>
+            </div>
+          </div>
+
           <div class="analysis-grid analysis-grid--two">
             <div class="chart-card">
               <div class="chart-card__header">

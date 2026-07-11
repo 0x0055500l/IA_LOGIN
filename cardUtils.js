@@ -89,6 +89,7 @@
     getActiveCardBalance,
     normalizeCardStatus,
     validateTransactionAmount,
+    buildTransactionAnalyticsSummary,
     isCardActiveStatus,
     isCardBlockedStatus,
     isCardTransactionAllowed

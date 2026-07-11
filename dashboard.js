@@ -1611,8 +1611,18 @@ function registerAnalysisTransaction(type, amount, status = 'Procesada') {
   return tx;
 }
 
+function getBankingTransactions() {
+  try {
+    return JSON.parse(localStorage.getItem('bankingTransactions') || '[]');
+  } catch (error) {
+    console.warn('No se pudieron leer las transacciones bancarias:', error);
+    return [];
+  }
+}
+
 function renderAnalysisDashboard() {
   const transactions = getAnalysisTransactions();
+  const bankingTransactions = getBankingTransactions();
   const latestTx = transactions[0];
   const safeCount = transactions.filter((tx) => !tx.isSuspicious).length;
   const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && tx.riskLevel !== 'Crítico').length;
@@ -1717,22 +1727,24 @@ function renderAnalysisDashboard() {
     `).join('');
   }
 
-  renderAnalysisCharts(transactions);
+  renderAnalysisCharts(transactions, bankingTransactions);
 }
 
-function renderAnalysisCharts(transactions) {
+function renderAnalysisCharts(transactions, bankingTransactions = []) {
   if (!window.Chart) return;
   const anomalyCtx = document.getElementById('anomalyChart');
   const alertsCtx = document.getElementById('alertsChart');
   const patternsCtx = document.getElementById('patternsChart');
   const auditCtx = document.getElementById('auditChart');
+  const transactionStatusCtx = document.getElementById('transactionStatusChart');
 
-  if (!anomalyCtx || !alertsCtx || !patternsCtx || !auditCtx) return;
+  if (!anomalyCtx || !alertsCtx || !patternsCtx || !auditCtx || !transactionStatusCtx) return;
 
   if (ANALYSIS_CHARTS.anomaly) ANALYSIS_CHARTS.anomaly.destroy();
   if (ANALYSIS_CHARTS.alerts) ANALYSIS_CHARTS.alerts.destroy();
   if (ANALYSIS_CHARTS.patterns) ANALYSIS_CHARTS.patterns.destroy();
   if (ANALYSIS_CHARTS.audit) ANALYSIS_CHARTS.audit.destroy();
+  if (ANALYSIS_CHARTS.transactionStatus) ANALYSIS_CHARTS.transactionStatus.destroy();
 
   const normalCount = transactions.filter((tx) => !tx.isSuspicious).length;
   const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && tx.riskLevel !== 'Crítico').length;
@@ -1848,6 +1860,32 @@ function renderAnalysisCharts(transactions) {
       scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { ticks: { color: '#cbd5e1' }, grid: { display: false } } }
     }
   });
+
+  const summary = window.cardUtils?.buildTransactionAnalyticsSummary?.(transactions, bankingTransactions) || {
+    approvedCount: 0,
+    deniedCount: 0,
+    suspiciousCount: 0,
+    fraudCount: 0
+  };
+
+  ANALYSIS_CHARTS.transactionStatus = new window.Chart(transactionStatusCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Aprobadas', 'Denegadas', 'Riesgos', 'Fraudes'],
+      datasets: [{
+        label: 'Eventos',
+        data: [summary.approvedCount, summary.deniedCount, summary.suspiciousCount, summary.fraudCount],
+        backgroundColor: ['#34d399', '#ef4444', '#fb923c', '#f59e0b'],
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
+    }
+  });
 }
 
 // ─── Setup Interactive Banking ───
@@ -1922,6 +1960,7 @@ function setupInteractiveBanking(user) {
     if (list.length > 10) list.pop(); // keep last 10
     localStorage.setItem('bankingTransactions', JSON.stringify(list));
     renderTransactionsTable();
+    renderAnalysisDashboard();
   }
 
   function renderTransactionsTable() {

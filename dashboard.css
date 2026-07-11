@@ -876,6 +876,10 @@ body::before {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.analysis-grid--single {
+  grid-template-columns: 1fr;
+}
+
 .chart-card {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255,255,255,0.08);
@@ -963,6 +967,20 @@ body::before {
 .dot-yellow { background: #facc15; }
 .dot-orange { background: #fb923c; }
 .dot-red { background: #ef4444; }
+.dot-warning { background: #f59e0b; }
+
+.analysis-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  color: rgba(241,245,249,0.76);
+  font-size: 0.9rem;
+}
+
+.transaction-analysis-chart {
+  min-height: 260px;
+}
 
 .audit-card {
   margin-top: 16px;
