@@ -371,34 +371,34 @@
               </div>
             </div>
 
-            <!-- Bloque de Historial de Transacciones (Operaciones) -->
-            <div class="banking-block transactions-history-block" style="margin-bottom: 16px;">
-              <h4 class="block-title">📜 Historial de Transacciones</h4>
-              <div class="transactions-table-wrapper">
-                <table class="transactions-table">
-                  <thead>
-                    <tr>
-                      <th>Fecha / Hora</th>
-                      <th>Operación</th>
-                      <th>Monto</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody id="bankingTransactionsList">
-                    <tr>
-                      <td colspan="4" class="text-center text-muted" style="padding: 12px;">No hay transacciones registradas.</td>
-                    </tr>
-                  </tbody>
-                </table>
+            <div class="banking-panel-actions">
+              <div class="banking-actions">
+                <button type="button" id="btn-validar-acceso" class="banking-btn btn-primary">Validar acceso</button>
+                <button type="button" id="btnBlockCard" class="banking-btn btn-danger">Bloquear tarjeta</button>
+                <button type="button" id="btnReactivateCard" class="banking-btn btn-success hidden">Reactivar tarjeta</button>
+                <button type="button" id="btnReviewAlerts" class="banking-btn btn-warning">Revisar alertas</button>
               </div>
-            </div>
 
-            <!-- Acciones Disponibles -->
-            <div class="banking-actions">
-              <button type="button" id="btn-validar-acceso" class="banking-btn btn-primary">Validar acceso</button>
-              <button type="button" id="btnBlockCard" class="banking-btn btn-danger">Bloquear tarjeta</button>
-              <button type="button" id="btnReactivateCard" class="banking-btn btn-success hidden">Reactivar tarjeta</button>
-              <button type="button" id="btnReviewAlerts" class="banking-btn btn-warning">Revisar alertas</button>
+              <div class="banking-block transactions-history-block" style="margin-bottom: 16px;">
+                <h4 class="block-title">📜 Historial de Transacciones</h4>
+                <div class="transactions-table-wrapper">
+                  <table class="transactions-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha / Hora</th>
+                        <th>Operación</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bankingTransactionsList">
+                      <tr>
+                        <td colspan="4" class="text-center text-muted" style="padding: 12px;">No hay transacciones registradas.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <div id="cameraModal" class="modal-overlay hidden">
