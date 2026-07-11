@@ -2083,8 +2083,8 @@ function setupInteractiveBanking(user) {
   const btnValidateAccess = document.getElementById('btn-validar-acceso');
   const cameraModal = document.getElementById('cameraModal');
   const closeCameraModal = document.getElementById('closeCameraModal');
-  const accessCameraVideo = document.getElementById('accessCameraVideo');
-  const captureFaceBtn = document.getElementById('captureFaceBtn');
+  const accessCameraVideo = document.getElementById('webcam');
+  const captureFaceBtn = document.getElementById('btn-capturar-rostro');
   const cameraModalMessage = document.getElementById('cameraModalMessage');
   const btnBlockCard = document.getElementById('btnBlockCard');
   const btnReactivateCard = document.getElementById('btnReactivateCard');
