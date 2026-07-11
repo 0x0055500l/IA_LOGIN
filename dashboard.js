@@ -86,7 +86,7 @@ const DASHBOARD_TRANSLATIONS = {
     device_trust_added: "Dispositivo registrado correctamente.",
     device_trust_removed: "Dispositivo desvinculado correctamente.",
     cards_title: "Gestión de Tarjetas",
-    cards_subtitle: "Administra tus tarjetas bancarias. La tarjeta predeterminada se usa para pruebas y validaciones.",
+    cards_subtitle: "Registra tu propia tarjeta para usarla en validaciones y transacciones.",
     cards_number: "Número de Tarjeta",
     cards_expiry: "Vencimiento",
     cards_cvv: "CVV",
@@ -191,7 +191,7 @@ const DASHBOARD_TRANSLATIONS = {
     device_trust_added: "Device registered successfully.",
     device_trust_removed: "Device unregistered successfully.",
     cards_title: "Card Management",
-    cards_subtitle: "Manage your bank cards. The default card is used for testing and validations.",
+    cards_subtitle: "Register your own card to use it for validations and transactions.",
     cards_number: "Card Number",
     cards_expiry: "Expiry Date",
     cards_cvv: "CVV",
@@ -560,34 +560,65 @@ const DEFAULT_CARD = {
   number: '4111 1111 1111 1111',
   expiry: '11/28',
   cvv: '123',
-  status: 'Activa', // Tarjeta activa por defecto (proyecto académico)
-  isDefault: true
+  status: 'Activa',
+  isDefault: true,
+  availableAmount: 5248.5
 };
 
 function getCards() {
   try {
     const raw = localStorage.getItem(CARDS_KEY);
-    if (!raw) return [{ ...DEFAULT_CARD }];
-    const list = JSON.parse(raw);
-    if (!list.length) return [{ ...DEFAULT_CARD }];
-    // Migración: si la tarjeta principal estaba en Pendiente, actualizar a Activa
-    if (list[0] && list[0].status === 'Pendiente') {
-      list[0].status = 'Activa';
-      localStorage.setItem(CARDS_KEY, JSON.stringify(list));
+    if (!raw) {
+      return [{ ...DEFAULT_CARD }];
     }
-    return list;
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list) || !list.length) {
+      return [{ ...DEFAULT_CARD }];
+    }
+    const normalized = list.map((card) => ({
+      ...card,
+      availableAmount: card.availableAmount != null ? Number(card.availableAmount) : (card.isDefault ? DEFAULT_CARD.availableAmount : 0)
+    }));
+    if (normalized[0] && normalized[0].status === 'Pendiente') {
+      normalized[0].status = 'Activa';
+      localStorage.setItem(CARDS_KEY, JSON.stringify(normalized));
+    }
+    return normalized;
   } catch {
     return [{ ...DEFAULT_CARD }];
   }
 }
 
 function saveCards(list) {
-  localStorage.setItem(CARDS_KEY, JSON.stringify(list));
+  const normalized = Array.isArray(list) ? list.map((card) => ({
+    ...card,
+    availableAmount: card.availableAmount != null ? Number(card.availableAmount) : 0
+  })) : [];
+  localStorage.setItem(CARDS_KEY, JSON.stringify(normalized));
 }
 
 function isCardActive() {
   const cards = getCards();
-  return cards.length > 0 && cards[0].status === 'Activa';
+  const activeCard = cards.find((card) => card && card.status === 'Activa');
+  return Boolean(activeCard);
+}
+
+function getActiveCard() {
+  const cards = getCards();
+  return cards.find((card) => card && card.status === 'Activa') || cards[0] || null;
+}
+
+function getActiveCardBalance() {
+  const activeCard = getActiveCard();
+  return activeCard && activeCard.availableAmount != null ? Number(activeCard.availableAmount) : 0;
+}
+
+function updateActiveCardBalance(newBalance) {
+  const cards = getCards();
+  const activeCard = cards.find((card) => card && card.status === 'Activa') || cards[0];
+  if (!activeCard) return;
+  activeCard.availableAmount = Number(newBalance);
+  saveCards(cards);
 }
 
 // ─── Settings Handlers ───
@@ -787,35 +818,24 @@ function setupSettingsHandlers(user, expiresAt) {
 
     let editingIdx = -1; // -1 = editing "new" or default
 
-    // ── Luhn algorithm ──
     function luhnCheck(num) {
-      const digits = num.replace(/\D/g, '');
-      if (digits.length < 13 || digits.length > 19) return false;
-      let sum = 0;
-      let alt = false;
-      for (let i = digits.length - 1; i >= 0; i--) {
-        let n = parseInt(digits[i], 10);
-        if (alt) { n *= 2; if (n > 9) n -= 9; }
-        sum += n;
-        alt = !alt;
-      }
-      return sum % 10 === 0;
+      return window.cardUtils?.luhnCheck(num) ?? false;
     }
 
-    // ── Expiry validation (must be future) ──
     function isExpiryFuture(exp) {
-      const match = exp.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
-      if (!match) return false;
-      const month = parseInt(match[1], 10);
-      const year  = 2000 + parseInt(match[2], 10);
-      const now   = new Date();
-      const expDate = new Date(year, month); // 1st of NEXT month
-      return expDate > now;
+      return window.cardUtils?.isExpiryFuture(exp) ?? false;
     }
 
-    // ── CVV validation ──
     function isCvvValid(cvv) {
-      return /^\d{3,4}$/.test(cvv);
+      return window.cardUtils?.isCvvValid(cvv) ?? false;
+    }
+
+    function isCardFormComplete(card) {
+      return window.cardUtils?.isCardFormComplete(card) ?? false;
+    }
+
+    function generateInitialAvailableAmount() {
+      return window.cardUtils?.generateInitialAvailableAmount() ?? 5248.5;
     }
 
     // ── Format card number input ──
@@ -975,6 +995,19 @@ function setupSettingsHandlers(user, expiresAt) {
     // ── Validate all fields helper ──
     function validateCardFields() {
       const lang = localStorage.getItem('userLanguage') || 'es';
+      const cardData = {
+        number: cfgNum.value.trim(),
+        expiry: cfgExp.value.trim(),
+        cvv: cfgCvv.value.trim(),
+        status: cfgStatus.value.trim()
+      };
+
+      if (!isCardFormComplete(cardData)) {
+        const message = lang === 'en' ? 'Please complete all card fields before saving or validating.' : 'Completa todos los campos de la tarjeta antes de guardar o validar.';
+        showCardFeedback(message, 'error');
+        showToast(message, 'error');
+        return false;
+      }
       if (!luhnCheck(cfgNum.value)) {
         showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
         showToast(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
@@ -1003,7 +1036,8 @@ function setupSettingsHandlers(user, expiresAt) {
           number: cfgNum.value.trim(),
           expiry: cfgExp.value.trim(),
           cvv: cfgCvv.value.trim(),
-          status: cfgStatus.value
+          status: cfgStatus.value,
+          availableAmount: cards[editingIdx]?.availableAmount != null ? Number(cards[editingIdx].availableAmount) : generateInitialAvailableAmount()
         };
 
         if (editingIdx >= 0 && editingIdx < cards.length) {
@@ -1045,7 +1079,8 @@ function setupSettingsHandlers(user, expiresAt) {
           expiry: cfgExp.value.trim(),
           cvv: cfgCvv.value.trim(),
           status: cfgStatus.value,
-          isDefault: false
+          isDefault: false,
+          availableAmount: generateInitialAvailableAmount()
         };
 
         cards.push(newCard);
@@ -1841,7 +1876,7 @@ function setupInteractiveBanking(user) {
   const btnSimulatePayment = document.getElementById('btnSimulatePayment');
 
   let cardBlocked = false;
-  let balance = parseFloat(localStorage.getItem('cardBalanceVal') || '5248.50');
+  let balance = getActiveCardBalance();
 
   // Update Admin-Only Visibility
   const isAdmin = user && user.role === 'admin';
@@ -1910,12 +1945,12 @@ function setupInteractiveBanking(user) {
   function updateBalanceAndSecurityUI() {
     const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
     const isSecure = isDeviceTrusted && !cardBlocked;
+    balance = getActiveCardBalance();
 
     if (balanceContent && balanceSecurityOverlay) {
       if (isSecure) {
         balanceContent.style.display = 'block';
         balanceSecurityOverlay.style.display = 'none';
-        // Update balance value in UI
         const balValEl = balanceContent.querySelector('.balance-value');
         if (balValEl) balValEl.textContent = `$${balance.toFixed(2)}`;
       } else {
@@ -1952,6 +1987,7 @@ function setupInteractiveBanking(user) {
       const status = cards.length > 0 ? cards[0].status : 'Pendiente';
       
       cardBlocked = (status === 'Bloqueada' || status === 'Pendiente');
+      balance = getActiveCardBalance();
 
       if (statusCardVal) {
         if (status === 'Activa') {
@@ -2233,7 +2269,7 @@ function setupInteractiveBanking(user) {
     }
 
     balance -= amountVal;
-    localStorage.setItem('cardBalanceVal', balance.toString());
+    updateActiveCardBalance(balance);
     updateBalanceAndSecurityUI();
     saveTransaction(label, amountVal, 'Aprobado');
     registerAnalysisTransaction(type, amountVal, 'Aprobada');
