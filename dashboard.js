@@ -2083,9 +2083,9 @@ function setupInteractiveBanking(user) {
   const btnValidateAccess = document.getElementById('btn-validar-acceso');
   const cameraModal = document.getElementById('cameraModal');
   const closeCameraModal = document.getElementById('closeCameraModal');
-  const accessCameraVideo = document.getElementById('webcam');
+  const webcamVideo = document.getElementById('webcam');
   const captureFaceBtn = document.getElementById('btn-capturar-rostro');
-  const cameraModalMessage = document.getElementById('cameraModalMessage');
+  const cameraMessage = document.getElementById('cameraModalMessage');
   const btnBlockCard = document.getElementById('btnBlockCard');
   const btnReactivateCard = document.getElementById('btnReactivateCard');
   const btnReviewAlerts = document.getElementById('btnReviewAlerts');
@@ -2373,24 +2373,24 @@ function setupInteractiveBanking(user) {
 
   if (captureFaceBtn) {
     captureFaceBtn.addEventListener('click', () => {
-      if (!accessCameraVideo || !accessCameraVideo.srcObject) {
-        if (cameraModalMessage) {
-          cameraModalMessage.textContent = 'La cámara no está disponible. Intenta de nuevo.';
-          cameraModalMessage.className = 'modal-message error';
+      if (!webcamVideo || !webcamVideo.srcObject) {
+        if (cameraMessage) {
+          cameraMessage.textContent = 'La cámara no está disponible. Intenta de nuevo.';
+          cameraMessage.className = 'modal-message error';
         }
         return;
       }
 
       const canvas = document.createElement('canvas');
-      canvas.width = accessCameraVideo.videoWidth || 320;
-      canvas.height = accessCameraVideo.videoHeight || 240;
+      canvas.width = webcamVideo.videoWidth || 320;
+      canvas.height = webcamVideo.videoHeight || 240;
       const context = canvas.getContext('2d');
-      context.drawImage(accessCameraVideo, 0, 0, canvas.width, canvas.height);
+      context.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
       const imageData = canvas.toDataURL('image/png');
 
-      if (cameraModalMessage) {
-        cameraModalMessage.textContent = 'Rostro capturado correctamente.';
-        cameraModalMessage.className = 'modal-message success';
+      if (cameraMessage) {
+        cameraMessage.textContent = 'Rostro capturado correctamente.';
+        cameraMessage.className = 'modal-message success';
       }
 
       const biometricSuccessMessage = '[ÉXITO] Rostro coincide con el titular. Acceso autorizado. Estado: Operativo y Auditable.';
