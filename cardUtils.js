@@ -30,8 +30,21 @@
     return /^\d{3,4}$/.test(String(cvv || ''));
   }
 
+  function getMissingCardFields(card) {
+    const fields = {
+      number: card?.number,
+      expiry: card?.expiry,
+      cvv: card?.cvv,
+      status: card?.status
+    };
+
+    return Object.entries(fields)
+      .filter(([, value]) => String(value ?? '').trim() === '')
+      .map(([key]) => key);
+  }
+
   function isCardFormComplete(card) {
-    return [card.number, card.expiry, card.cvv, card.status].every((value) => String(value || '').trim() !== '');
+    return getMissingCardFields(card).length === 0;
   }
 
   function generateInitialAvailableAmount(min = 3000, max = 10000) {
@@ -76,6 +89,21 @@
     return normalizedStatus === 'Bloqueada' || normalizedStatus === 'Pendiente' || !isCardActiveStatus(normalizedStatus);
   }
 
+  function buildTransactionAnalyticsSummary(analysisTransactions = [], bankingTransactions = []) {
+    const approvedCount = bankingTransactions.filter((tx) => String(tx.status || '').trim() === 'Aprobado').length;
+    const deniedCount = bankingTransactions.filter((tx) => String(tx.status || '').trim() === 'Denegado').length;
+    const suspiciousCount = analysisTransactions.filter((tx) => tx.isSuspicious && tx.riskLevel !== 'Crítico').length;
+    const fraudCount = analysisTransactions.filter((tx) => tx.riskLevel === 'Crítico').length;
+
+    return {
+      approvedCount,
+      deniedCount,
+      suspiciousCount,
+      fraudCount,
+      totalCount: approvedCount + deniedCount + suspiciousCount + fraudCount
+    };
+  }
+
   function isCardTransactionAllowed(status, biometricValidated = false) {
     return isCardActiveStatus(status) && Boolean(biometricValidated);
   }
@@ -84,6 +112,7 @@
     luhnCheck,
     isExpiryFuture,
     isCvvValid,
+    getMissingCardFields,
     isCardFormComplete,
     generateInitialAvailableAmount,
     getActiveCardBalance,

@@ -1005,12 +1005,25 @@ function setupSettingsHandlers(user, expiresAt) {
         status: cfgStatus.value.trim()
       };
 
-      if (!isCardFormComplete(cardData)) {
-        const message = lang === 'en' ? 'Please complete all card fields before saving or validating.' : 'Completa todos los campos de la tarjeta antes de guardar o validar.';
+      const missingFields = window.cardUtils?.getMissingCardFields?.(cardData) || [];
+      if (missingFields.length > 0) {
+        const missingLabel = missingFields.map((field) => {
+          const labels = {
+            number: lang === 'en' ? 'card number' : 'número de tarjeta',
+            expiry: lang === 'en' ? 'expiration date' : 'vencimiento',
+            cvv: lang === 'en' ? 'CVV' : 'CVV',
+            status: lang === 'en' ? 'status' : 'estado'
+          };
+          return labels[field] || field;
+        }).join(', ');
+        const message = lang === 'en'
+          ? `Please complete the missing field(s): ${missingLabel}.`
+          : `Completa el(los) campo(s) faltante(s): ${missingLabel}.`;
         showCardFeedback(message, 'error');
         showToast(message, 'error');
         return false;
       }
+
       if (!isCardNumberFormatValid(cfgNum.value)) {
         const message = lang === 'en' ? 'Enter a valid card number with 13 to 19 digits.' : 'Ingresa un número de tarjeta válido con 13 a 19 dígitos.';
         showCardFeedback(message, 'error');
