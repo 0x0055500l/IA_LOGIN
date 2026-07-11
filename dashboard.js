@@ -306,6 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = session.user;
     sessionStorage.setItem('userName', user.name);
     sessionStorage.setItem('userEmail', user.email);
+    sessionStorage.setItem('userRole', user.role);
 
     const prefs = user.preferences || { language: 'es', theme: 'dark', twoFactor: false, strictMode: false };
     sessionStorage.setItem('userPreferences', JSON.stringify(prefs));
@@ -319,6 +320,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     showDashboard();
   }
 });
+
+// ─── Role-Based Access Control ───
+function applyRoleRestrictions(role) {
+  const isAdmin = role === 'admin';
+  const currentLang = localStorage.getItem('userLanguage') || 'es';
+
+  // Hide/show admin-only elements
+  document.querySelectorAll('[data-admin-only]').forEach(el => {
+    if (!isAdmin) {
+      el.style.display = 'none';
+      el.setAttribute('aria-hidden', 'true');
+    } else {
+      el.style.display = '';
+      el.removeAttribute('aria-hidden');
+    }
+  });
+
+  // Show role badge in topbar
+  const roleBadge = document.getElementById('roleBadge');
+  if (roleBadge) {
+    if (isAdmin) {
+      roleBadge.textContent = currentLang === 'en' ? '🛡️ Admin' : '🛡️ Administrador';
+      roleBadge.className = 'role-badge role-admin';
+    } else {
+      roleBadge.textContent = currentLang === 'en' ? '👤 User' : '👤 Usuario';
+      roleBadge.className = 'role-badge role-user';
+    }
+    roleBadge.style.display = 'inline-flex';
+  }
+
+  // Hide/show Historial nav for non-admin (system logs)
+  // Regular users can still see Historial but only their own logs (server-side enforced)
+
+  console.log(`[RBAC] Rol aplicado: ${role} | Admin: ${isAdmin}`);
+}
 
 // ─── Initialize Dashboard ───
 function initializeDashboard(user, expiresAt) {
@@ -448,6 +484,9 @@ function initializeDashboard(user, expiresAt) {
 
   // Display user info in topbar
   if (userPill) userPill.textContent = user.name || user.email;
+
+  // Apply role-based access restrictions
+  applyRoleRestrictions(user.role);
 
   // Logout handler
   if (logoutBtn) {

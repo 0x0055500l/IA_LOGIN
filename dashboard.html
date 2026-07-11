@@ -40,11 +40,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5" /><path d="M6 10.5V20h12v-9.5" /></svg>
           Inicio
         </a>
-        <a href="#" id="btn-analisis" data-i18n="nav_analisis">
+        <a href="#" id="btn-analisis" data-i18n="nav_analisis" data-admin-only>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16" /><path d="M7 16V9" /><path d="M12 16V5" /><path d="M17 16v-3" /></svg>
           Análisis
         </a>
-        <a href="#" id="navReglas" data-i18n="nav_reglas">
+        <a href="#" id="navReglas" data-i18n="nav_reglas" data-admin-only>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M7 7v10" /><path d="M12 7v10" /><path d="M17 7v10" /></svg>
           Reglas
         </a>
@@ -80,6 +80,7 @@
         <div class="topbar-actions">
           <div class="status-chip" id="onlineChip" data-i18n="dashboard_online">● En línea</div>
           <div class="user-pill" id="userPill">Usuario</div>
+          <div class="role-badge" id="roleBadge"></div>
           <button type="button" id="logoutBtn" class="logout-btn" title="Cerrar sesión">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
             <span data-i18n="logout_btn_text">Salir</span>
@@ -117,14 +118,14 @@
             <strong>96.8%</strong>
             <span data-i18n="stat_accuracy_sub">Modelo en evolución</span>
           </article>
-          <article class="stat-card">
+          <article class="stat-card" data-admin-only>
             <p data-i18n="stat_status">Estado del sistema</p>
             <strong id="systemState">Operativo</strong>
             <span data-i18n="stat_status_sub">Sin interrupciones</span>
           </article>
         </section>
 
-        <section id="seccion-analisis" class="hidden panel analysis-section">
+        <section id="seccion-analisis" class="hidden panel analysis-section" data-admin-only>
           <div class="panel-header">
             <div>
               <p class="eyebrow">Insights del Motor</p>
@@ -325,7 +326,7 @@
             </div>
           </article>
 
-          <article class="panel panel-large">
+          <article class="panel panel-large" data-admin-only>
             <div class="panel-header">
               <div>
                 <p class="eyebrow" data-i18n="system_status_eyebrow">Estado del sistema</p>
@@ -376,7 +377,7 @@
             </div>
           </article>
 
-          <article class="panel panel-large">
+          <article class="panel panel-large" data-admin-only>
             <div class="panel-header">
               <div>
                 <p class="eyebrow" data-i18n="rules_eyebrow">Motor de inferencia</p>
@@ -386,7 +387,7 @@
             <ul class="rule-list" id="ruleList"></ul>
           </article>
 
-          <article class="panel">
+          <article class="panel" data-admin-only>
             <div class="panel-header">
               <div>
                 <p class="eyebrow" data-i18n="explanation_eyebrow">Explicación</p>
@@ -396,7 +397,7 @@
             <p class="explanation" id="explanationText"></p>
           </article>
 
-          <article class="panel panel-large">
+          <article class="panel panel-large" data-admin-only>
             <div class="panel-header">
               <div>
                 <p class="eyebrow" data-i18n="events_eyebrow">Historial de eventos</p>

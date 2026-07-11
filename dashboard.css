@@ -356,6 +356,37 @@ body::before {
   background: rgba(255,255,255,0.04);
 }
 
+/* ─── Role Badge ─── */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: all 0.3s ease;
+}
+
+.role-admin {
+  background: linear-gradient(135deg, rgba(53, 215, 255, 0.18), rgba(47, 125, 255, 0.22));
+  color: var(--accent);
+  border: 1px solid rgba(53, 215, 255, 0.3);
+  box-shadow: 0 0 16px rgba(53, 215, 255, 0.1);
+}
+
+.role-user {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Admin-only elements hidden state */
+[data-admin-only][aria-hidden="true"] {
+  display: none !important;
+}
+
 /* ─── Logout Button ─── */
 .logout-btn {
   display: flex;

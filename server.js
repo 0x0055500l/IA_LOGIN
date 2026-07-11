@@ -197,6 +197,17 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// ─── Admin Authorization Middleware ───
+function authorizeAdmin(req, res, next) {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado. Se requieren permisos de administrador.',
+    });
+  }
+  next();
+}
+
 // ─── Routes ───
 
 app.get('/', (_req, res) => {
@@ -672,7 +683,7 @@ app.delete('/api/logs', authenticateToken, (req, res) => {
  * Non-admins solo borran su propio historial.
  * Body: { confirmCode } — debe ser exactamente "CONFIRMAR"
  */
-app.delete('/api/logs/all', authenticateToken, (req, res) => {
+app.delete('/api/logs/all', authenticateToken, authorizeAdmin, (req, res) => {
   const { confirmCode } = req.body || {};
 
   if (confirmCode !== 'CONFIRMAR') {
