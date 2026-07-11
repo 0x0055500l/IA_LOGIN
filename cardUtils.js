@@ -34,7 +34,7 @@
     return [card.number, card.expiry, card.cvv, card.status].every((value) => String(value || '').trim() !== '');
   }
 
-  function generateInitialAvailableAmount(min = 3000, max = 20000) {
+  function generateInitialAvailableAmount(min = 3000, max = 10000) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 

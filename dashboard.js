@@ -1880,10 +1880,10 @@ function setupInteractiveBanking(user) {
   const btnSimulateWithdrawal = document.getElementById('btnSimulateWithdrawal');
   const btnSimulatePayment = document.getElementById('btnSimulatePayment');
 
-  const PURCHASE_LIMIT = 5000;
-  const TRANSFER_LIMIT = 3000;
-  const WITHDRAWAL_LIMIT = 4000;
-  const PAYMENT_LIMIT = 3500;
+  const PURCHASE_LIMIT = 2000;
+  const TRANSFER_LIMIT = 1500;
+  const WITHDRAWAL_LIMIT = 1500;
+  const PAYMENT_LIMIT = 1500;
 
   let cardBlocked = false;
   let balance = getActiveCardBalance();
