@@ -102,6 +102,15 @@
           </div>
         </section>
 
+        <section class="simulation-controls" aria-label="Controles de simulación">
+          <div class="sim-control-group">
+            <button type="button" id="btnStartSimulation" class="banking-btn btn-primary">Iniciar Simulación</button>
+            <button type="button" id="btnStopSimulation" class="banking-btn btn-warning">Detener Simulación</button>
+            <button type="button" id="btnResetSimulation" class="banking-btn btn-secondary">Reiniciar Simulación</button>
+          </div>
+          <div class="sim-status-pill" id="simulationStatusBadge">Simulación detenida</div>
+        </section>
+
         <section class="stats-grid">
           <article class="stat-card">
             <p data-i18n="stat_monitored">Transacciones monitoreadas</p>
@@ -263,6 +272,16 @@
             </div>
           </div>
 
+          <div class="analysis-grid analysis-grid--single">
+            <div class="chart-card">
+              <div class="chart-card__header">
+                <h4>Reglas del sistema experto más activadas</h4>
+                <span>Frecuencia de activación</span>
+              </div>
+              <canvas id="rulesChart"></canvas>
+            </div>
+          </div>
+
           <div class="chart-card audit-card">
             <div class="chart-card__header">
               <h4>Auditoría y trazabilidad</h4>
@@ -276,15 +295,20 @@
                     <th>Fecha / Hora</th>
                     <th>Usuario</th>
                     <th>Operación</th>
+                    <th>Monto</th>
                     <th>País</th>
                     <th>Dispositivo</th>
                     <th>Riesgo</th>
                     <th>Estado</th>
-                    <th>Resultado</th>
+                    <th>Reglas</th>
                   </tr>
                 </thead>
                 <tbody id="analysisHistoryTableBody"></tbody>
               </table>
+            </div>
+            <div class="analysis-audit-panel">
+              <h5>Auditoría experta</h5>
+              <div id="analysisAuditTimeline" class="analysis-audit-list"></div>
             </div>
           </div>
         </section>

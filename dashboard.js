@@ -1498,6 +1498,18 @@ window.showProfileFeedback = showProfileFeedback;
 // ─── Advanced Analysis Dashboard Helpers ───
 const ANALYSIS_STORAGE_KEY = 'antiFraudAnalysisTransactions';
 const ANALYSIS_CHARTS = {};
+const ANALYSIS_SIMULATION_SCENARIOS = [
+  { type: 'Compra', amount: 180, country: 'HN', city: 'Tegucigalpa', device: 'iPhone 15', channel: 'App Móvil', suspicious: false, repeatedTransfers: 0, timeWindowMinutes: 0, ipChanged: false, failedAttempts: 0, previousLocations: ['Tegucigalpa'] },
+  { type: 'Transferencia', amount: 3200, country: 'US', city: 'Miami', device: 'unknown-device', channel: 'Web', suspicious: true, repeatedTransfers: 4, timeWindowMinutes: 1, ipChanged: true, failedAttempts: 0, previousLocations: ['Tegucigalpa'] },
+  { type: 'Retiro', amount: 950, country: 'HN', city: 'San Pedro Sula', device: 'Samsung S24', channel: 'ATM', suspicious: false, repeatedTransfers: 0, timeWindowMinutes: 0, ipChanged: false, failedAttempts: 0, previousLocations: ['Tegucigalpa'] },
+  { type: 'Pago', amount: 4200, country: 'ES', city: 'Madrid', device: 'MacBook Pro', channel: 'POS', suspicious: true, repeatedTransfers: 2, timeWindowMinutes: 2, ipChanged: true, failedAttempts: 2, previousLocations: ['Tegucigalpa'] },
+  { type: 'Compra', amount: 6100, country: 'MX', city: 'Ciudad de México', device: 'unknown-device', channel: 'Web', suspicious: true, repeatedTransfers: 3, timeWindowMinutes: 2, ipChanged: true, failedAttempts: 3, previousLocations: ['San Pedro Sula'] },
+  { type: 'Transferencia', amount: 260, country: 'HN', city: 'La Ceiba', device: 'Windows Laptop', channel: 'App Móvil', suspicious: false, repeatedTransfers: 0, timeWindowMinutes: 0, ipChanged: false, failedAttempts: 0, previousLocations: ['Tegucigalpa'] }
+];
+let analysisSimulationTimer = null;
+let analysisSimulationRunning = false;
+let analysisSimulationGeneratedCount = 0;
+let analysisSimulationTarget = 180;
 
 function getAnalysisTransactions() {
   try {
@@ -1534,7 +1546,7 @@ function getAnalysisRiskLabel(level) {
   return 'Bajo';
 }
 
-function getAnalysisTransactionProfile(type, amount, transactions) {
+function getAnalysisTransactionProfile(type, amount, transactions, overrides = {}) {
   const history = transactions.slice(0, 8);
   const recentCount = history.filter((tx) => tx.type === 'Transferencia' || tx.type === 'Pago').length;
   const suspiciousCount = history.filter((tx) => tx.isSuspicious).length;
@@ -1543,18 +1555,18 @@ function getAnalysisTransactionProfile(type, amount, transactions) {
   const cities = ['Tegucigalpa', 'San Pedro Sula', 'Miami', 'Ciudad de México', 'Madrid', 'San José'];
   const devices = ['iPhone 15', 'Samsung S24', 'Windows Laptop', 'MacBook Pro', 'unknown-device'];
   const ips = ['201.192.10.34', '45.132.88.5', '172.16.8.11', '8.8.8.8', '200.42.29.17'];
-  const country = history.length > 0 && Math.random() > 0.6 ? (history[0].country === 'HN' ? countries[1] : 'HN') : countries[Math.floor(Math.random() * countries.length)];
-  const city = cities[Math.floor(Math.random() * cities.length)];
-  const device = suspiciousCount > 0 || Math.random() > 0.7 ? devices[4] : devices[Math.floor(Math.random() * (devices.length - 1))];
-  const ip = ips[Math.floor(Math.random() * ips.length)];
-  const ipChanged = history.length > 0 && Math.random() > 0.6;
-  const deviceChanged = history.length > 0 && Math.random() > 0.7;
-  const suspiciousDestination = ['Transferencia', 'Pago'].includes(type) && (amount > 2200 || Math.random() > 0.7);
-  const repeatedTransfers = recentCount + (Math.random() > 0.5 ? 2 : 0);
-  const timeWindowMinutes = repeatedTransfers > 0 ? 2 : 0;
-  const previousLocations = history.map((tx) => tx.city).filter(Boolean);
-  const failedAttempts = recentCount > 0 && Math.random() > 0.8 ? 3 : 0;
-  const historyAvg = history.length > 0 ? history.reduce((sum, tx) => sum + Number(tx.amountValue || 0), 0) / history.length : 300;
+  const country = overrides.country || (history.length > 0 && Math.random() > 0.6 ? (history[0].country === 'HN' ? countries[1] : 'HN') : countries[Math.floor(Math.random() * countries.length)]);
+  const city = overrides.city || cities[Math.floor(Math.random() * cities.length)];
+  const device = overrides.device || (suspiciousCount > 0 || Math.random() > 0.7 ? devices[4] : devices[Math.floor(Math.random() * (devices.length - 1))]);
+  const ip = overrides.ip || ips[Math.floor(Math.random() * ips.length)];
+  const ipChanged = overrides.ipChanged ?? (history.length > 0 && Math.random() > 0.6);
+  const deviceChanged = overrides.deviceChanged ?? (history.length > 0 && Math.random() > 0.7);
+  const suspiciousDestination = overrides.suspiciousDestination ?? (['Transferencia', 'Pago'].includes(type) && (amount > 2200 || Math.random() > 0.7));
+  const repeatedTransfers = overrides.repeatedTransfers ?? (recentCount + (Math.random() > 0.5 ? 2 : 0));
+  const timeWindowMinutes = overrides.timeWindowMinutes ?? (repeatedTransfers > 0 ? 2 : 0);
+  const previousLocations = overrides.previousLocations || history.map((tx) => tx.city).filter(Boolean);
+  const failedAttempts = overrides.failedAttempts ?? (recentCount > 0 && Math.random() > 0.8 ? 3 : 0);
+  const historyAvg = overrides.historyAvg ?? (history.length > 0 ? history.reduce((sum, tx) => sum + Number(tx.amountValue || 0), 0) / history.length : 300);
 
   return {
     country,
@@ -1573,11 +1585,11 @@ function getAnalysisTransactionProfile(type, amount, transactions) {
   };
 }
 
-function registerAnalysisTransaction(type, amount, status = 'Procesada') {
+function registerAnalysisTransaction(type, amount, status = 'Procesada', options = {}) {
   const transactions = getAnalysisTransactions();
   const userName = sessionStorage.getItem('userName') || 'Usuario';
   const userEmail = sessionStorage.getItem('userEmail') || 'usuario@demo.com';
-  const profile = getAnalysisTransactionProfile(type, amount, transactions);
+  const profile = getAnalysisTransactionProfile(type, amount, transactions, options);
   const evaluation = window.evaluateTransactionRules({
     amount,
     country: profile.country,
@@ -1594,6 +1606,7 @@ function registerAnalysisTransaction(type, amount, status = 'Procesada') {
     failedAttempts: profile.failedAttempts
   });
 
+  const isBlocked = evaluation.riskLevel === 'Crítico' || evaluation.riskLevel === 'Alto';
   const tx = {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     timestamp: new Date().toISOString(),
@@ -1607,22 +1620,103 @@ function registerAnalysisTransaction(type, amount, status = 'Procesada') {
     city: profile.city,
     ip: profile.ip,
     device: profile.device,
-    status: evaluation.isSuspicious ? (evaluation.riskLevel === 'Crítico' ? 'Bloqueada' : 'Sospechosa') : status,
+    channel: options.channel || 'App Móvil',
+    status: isBlocked ? 'Bloqueada' : (evaluation.isSuspicious ? 'Sospechosa' : status),
     user: userName,
     email: userEmail,
     riskLevel: evaluation.riskLevel,
     isSuspicious: evaluation.isSuspicious,
+    isBlocked,
     score: evaluation.score,
     rulesActivated: evaluation.rulesActivated.map((rule) => rule.name),
     explanation: evaluation.explanation,
     recommendations: evaluation.recommendations || [],
-    analysisResult: evaluation.riskLevel === 'Bajo' ? 'Aprobada' : 'Revisar'
+    explanationSteps: evaluation.rulesActivated.map((rule, index) => `${index + 1}. ${rule.name}: ${rule.description}`),
+    auditTrail: [
+      { label: 'Inicio del análisis', detail: `Se evaluó una operación de tipo ${type} por ${formatCurrency(amount)}.` },
+      { label: 'Reglas ejecutadas', detail: evaluation.rulesActivated.length ? evaluation.rulesActivated.map((rule) => rule.name).join(', ') : 'Sin reglas activadas.' },
+      { label: 'Puntaje', detail: `${evaluation.score}` },
+      { label: 'Decisión', detail: isBlocked ? 'Operación bloqueada por el sistema experto.' : 'Operación monitoreada y permitida.' }
+    ],
+    analysisResult: isBlocked ? 'Bloqueada' : (evaluation.riskLevel === 'Bajo' ? 'Aprobada' : 'Revisar')
   };
 
-  const nextTransactions = [tx, ...transactions].slice(0, 50);
+  const nextTransactions = [tx, ...transactions].slice(0, 80);
   persistAnalysisTransactions(nextTransactions);
   renderAnalysisDashboard();
   return tx;
+}
+
+function setSimulationStatus(message) {
+  const badge = document.getElementById('simulationStatusBadge');
+  if (badge) badge.textContent = message;
+}
+
+function stopAnalysisSimulation({ persistState = true } = {}) {
+  if (analysisSimulationTimer) {
+    window.clearTimeout(analysisSimulationTimer);
+    analysisSimulationTimer = null;
+  }
+  analysisSimulationRunning = false;
+  if (persistState) {
+    localStorage.setItem('antiFraudSimulationState', JSON.stringify({ running: false }));
+  }
+  setSimulationStatus('Simulación detenida');
+}
+
+function startAnalysisSimulation() {
+  if (analysisSimulationRunning) return;
+  analysisSimulationRunning = true;
+  analysisSimulationGeneratedCount = 0;
+  analysisSimulationTarget = 180;
+  localStorage.setItem('antiFraudSimulationState', JSON.stringify({ running: true }));
+  setSimulationStatus('Simulación activa');
+
+  const tick = () => {
+    if (!analysisSimulationRunning) return;
+
+    const transactions = getAnalysisTransactions();
+    const template = ANALYSIS_SIMULATION_SCENARIOS[Math.floor(Math.random() * ANALYSIS_SIMULATION_SCENARIOS.length)];
+    const amount = template.suspicious ? (template.amount + Math.round(Math.random() * 1800)) : (template.amount + Math.round(Math.random() * 400));
+    const tx = registerAnalysisTransaction(template.type, amount, 'Procesada', {
+      country: template.country,
+      city: template.city,
+      device: template.device,
+      channel: template.channel,
+      ipChanged: template.ipChanged,
+      repeatedTransfers: template.repeatedTransfers,
+      timeWindowMinutes: template.timeWindowMinutes,
+      suspiciousDestination: template.suspicious,
+      previousLocations: template.previousLocations,
+      failedAttempts: template.failedAttempts,
+      deviceChanged: template.device === 'unknown-device'
+    });
+
+    analysisSimulationGeneratedCount += 1;
+    if (analysisSimulationGeneratedCount >= analysisSimulationTarget) {
+      const latest = transactions[0];
+      setSimulationStatus(`Simulación completada (${analysisSimulationGeneratedCount} transacciones)`);
+      if (latest) {
+        showToast('Simulación completada: se evaluaron 180 transacciones de riesgo.', 'success');
+      }
+      stopAnalysisSimulation({ persistState: false });
+      return;
+    }
+
+    const delay = 1200 + Math.random() * 1500;
+    analysisSimulationTimer = window.setTimeout(tick, delay);
+  };
+
+  tick();
+}
+
+function resetAnalysisSimulation() {
+  stopAnalysisSimulation({ persistState: false });
+  localStorage.removeItem(ANALYSIS_STORAGE_KEY);
+  localStorage.removeItem('antiFraudSimulationState');
+  setSimulationStatus('Simulación reiniciada');
+  renderAnalysisDashboard();
+  showToast('Simulación reiniciada. El historial de análisis fue limpiado.', 'success');
 }
 
 function getBankingTransactions() {
@@ -1639,8 +1733,8 @@ function renderAnalysisDashboard() {
   const bankingTransactions = getBankingTransactions();
   const latestTx = transactions[0];
   const safeCount = transactions.filter((tx) => !tx.isSuspicious).length;
-  const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && tx.riskLevel !== 'Crítico').length;
-  const fraudCount = transactions.filter((tx) => tx.riskLevel === 'Crítico').length;
+  const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && !tx.isBlocked).length;
+  const fraudCount = transactions.filter((tx) => tx.isBlocked).length;
   const activeAlerts = transactions.filter((tx) => tx.isSuspicious).length;
   const protectedMoney = transactions.filter((tx) => !tx.isSuspicious).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
   const riskPct = transactions.length ? Math.round((activeAlerts / transactions.length) * 100) : 0;
@@ -1665,6 +1759,9 @@ function renderAnalysisDashboard() {
   const flowTextEl = document.getElementById('analysisFlowText');
   const flowStatusEl = document.getElementById('analysisFlowStatus');
   const historyBodyEl = document.getElementById('analysisHistoryTableBody');
+  const auditTimelineEl = document.getElementById('analysisAuditTimeline');
+  const flowLineEl = document.querySelector('.money-flow-line');
+  const flowNodes = document.querySelectorAll('.money-flow-node');
 
   if (totalTxEl) totalTxEl.textContent = transactions.length;
   if (secureTxEl) secureTxEl.textContent = safeCount;
@@ -1705,11 +1802,11 @@ function renderAnalysisDashboard() {
   if (gaugeRingEl) gaugeRingEl.style.background = `conic-gradient(${gaugeColor} 0deg 90deg, #facc15 90deg 180deg, #fb923c 180deg 270deg, #ef4444 270deg 360deg)`;
 
   if (latestTx && alertPanel) {
-    const isCritical = latestTx.riskLevel === 'Crítico';
+    const isCritical = latestTx.isBlocked || latestTx.riskLevel === 'Crítico';
     const isWarning = latestTx.riskLevel === 'Alto' || latestTx.riskLevel === 'Medio';
     alertPanel.className = `analysis-alert ${isCritical ? 'analysis-alert--danger' : isWarning ? 'analysis-alert--warning' : 'analysis-alert--safe'}`;
     if (alertTitleEl) alertTitleEl.textContent = latestTx.isSuspicious ? `Alerta Roja · ${latestTx.riskLevel}` : 'Sin alertas activas';
-    if (alertMessageEl) alertMessageEl.textContent = latestTx.isSuspicious ? latestTx.explanation : 'El sistema está monitorizando sin incidentes críticos.';
+    if (alertMessageEl) alertMessageEl.textContent = latestTx.isBlocked ? 'Operación bloqueada por el sistema experto por incumplimiento de reglas.' : (latestTx.isSuspicious ? latestTx.explanation : 'El sistema está monitorizando sin incidentes críticos.');
     if (alertRulesEl) {
       alertRulesEl.innerHTML = latestTx.isSuspicious
         ? latestTx.rulesActivated.map((rule) => `<span>${rule}</span>`).join('')
@@ -1723,21 +1820,36 @@ function renderAnalysisDashboard() {
       : 'Monitoreo activo de flujos de dinero en tiempo real.';
   }
   if (flowStatusEl) {
-    flowStatusEl.textContent = latestTx?.isSuspicious ? `Última operación: ${latestTx.riskLevel}` : 'Sin eventos críticos por el momento';
+    flowStatusEl.textContent = latestTx?.isBlocked ? 'Operación bloqueada por riesgo experto' : (latestTx?.isSuspicious ? `Última operación: ${latestTx.riskLevel}` : 'Sin eventos críticos por el momento');
   }
+  if (flowLineEl) {
+    flowLineEl.classList.toggle('is-blocked', Boolean(latestTx?.isBlocked));
+  }
+  flowNodes.forEach((node) => node.classList.toggle('is-blocked', Boolean(latestTx?.isBlocked)));
 
   if (historyBodyEl) {
-    historyBodyEl.innerHTML = transactions.slice(0, 10).map((tx) => `
-      <tr>
+    historyBodyEl.innerHTML = transactions.slice(0, 12).map((tx) => `
+      <tr class="${tx.isSuspicious ? 'is-suspicious' : ''}">
         <td>${tx.date} ${tx.time}</td>
         <td>${tx.user}</td>
         <td>${tx.type}</td>
+        <td>${tx.amountLabel}</td>
         <td>${tx.country}</td>
         <td>${tx.device}</td>
         <td><span style="color:${getRiskColor(tx.riskLevel)}; font-weight:700;">${tx.riskLevel}</span></td>
         <td>${tx.status}</td>
-        <td>${tx.explanation}</td>
+        <td>${tx.rulesActivated.slice(0, 2).join(', ') || 'Sin reglas'}</td>
       </tr>
+    `).join('');
+  }
+
+  if (auditTimelineEl) {
+    auditTimelineEl.innerHTML = transactions.slice(0, 8).map((tx) => `
+      <div class="analysis-audit-item ${tx.isBlocked ? 'analysis-audit-item--fraud' : ''}">
+        <strong>${tx.date} ${tx.time}</strong>
+        <div>${tx.type} · ${tx.amountLabel} · ${tx.riskLevel}</div>
+        <small>${tx.auditTrail?.[0]?.detail || tx.explanation}</small>
+      </div>
     `).join('');
   }
 
@@ -1750,6 +1862,7 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
   const patternsCtx = document.getElementById('patternsChart');
   const auditCtx = document.getElementById('auditChart');
   const transactionStatusCtx = document.getElementById('graficoTransacciones') || document.getElementById('transactionStatusChart');
+  const rulesCtx = document.getElementById('rulesChart');
   const transactionStatusContainer = transactionStatusCtx?.parentElement;
 
   if (!anomalyCtx || !alertsCtx || !patternsCtx || !auditCtx || !transactionStatusCtx) return;
@@ -1813,19 +1926,92 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
   if (ANALYSIS_CHARTS.patterns) ANALYSIS_CHARTS.patterns.destroy();
   if (ANALYSIS_CHARTS.audit) ANALYSIS_CHARTS.audit.destroy();
   if (ANALYSIS_CHARTS.transactionStatus) ANALYSIS_CHARTS.transactionStatus.destroy();
+  if (ANALYSIS_CHARTS.rules) ANALYSIS_CHARTS.rules.destroy();
 
   const normalCount = transactions.filter((tx) => !tx.isSuspicious).length;
-  const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && tx.riskLevel !== 'Crítico').length;
-  const fraudCount = transactions.filter((tx) => tx.riskLevel === 'Crítico').length;
+  const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && !tx.isBlocked).length;
+  const fraudCount = transactions.filter((tx) => tx.isBlocked).length;
+  const riskSeries = transactions.slice(0, 10).reverse().map((tx) => tx.isSuspicious ? (tx.isBlocked ? 92 : 68) : 10);
+  const riskLabels = transactions.slice(0, 10).reverse().map((tx) => `${tx.date} ${tx.time}`);
+  const typeCounts = transactions.reduce((acc, tx) => {
+    acc[tx.type] = (acc[tx.type] || 0) + 1;
+    return acc;
+  }, {});
+  const ruleCounts = transactions.reduce((acc, tx) => {
+    tx.rulesActivated.forEach((rule) => {
+      acc[rule] = (acc[rule] || 0) + 1;
+    });
+    return acc;
+  }, {});
+  const topRules = Object.entries(ruleCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const riskAverageSeries = transactions.slice(0, 8).reverse().map((tx) => tx.isSuspicious ? (tx.isBlocked ? 92 : 64) : 12);
 
   ANALYSIS_CHARTS.anomaly = new window.Chart(anomalyCtx, {
+    type: 'line',
+    data: {
+      labels: riskLabels.length ? riskLabels : ['Sin datos'],
+      datasets: [{
+        label: 'Nivel de riesgo',
+        data: riskSeries.length ? riskSeries : [0],
+        borderColor: '#38bdf8',
+        backgroundColor: 'rgba(56,189,248,0.2)',
+        tension: 0.25,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  ANALYSIS_CHARTS.alerts = new window.Chart(alertsCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Normales', 'Riesgo bajo', 'Riesgo medio', 'Riesgo alto', 'Fraudes'],
+      datasets: [{
+        data: [normalCount, Math.max(0, safeCount - fraudCount), suspiciousCount, Math.max(0, fraudCount), fraudCount],
+        backgroundColor: ['#34d399', '#60a5fa', '#facc15', '#fb923c', '#ef4444']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e2e8f0' } } }
+    }
+  });
+
+  ANALYSIS_CHARTS.patterns = new window.Chart(patternsCtx, {
+    type: 'line',
+    data: {
+      labels: riskLabels.length ? riskLabels : ['Sin datos'],
+      datasets: [{
+        label: 'Promedio de riesgo',
+        data: riskAverageSeries.length ? riskAverageSeries : [0],
+        borderColor: '#34d399',
+        backgroundColor: 'rgba(52,211,153,0.16)',
+        tension: 0.28,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  ANALYSIS_CHARTS.audit = new window.Chart(auditCtx, {
     type: 'bar',
     data: {
-      labels: ['Normales', 'Sospechosas', 'Fraudulentas'],
+      labels: ['Compras', 'Transferencias', 'Retiros', 'Pagos'],
       datasets: [{
-        label: 'Transacciones',
-        data: [normalCount, suspiciousCount, fraudCount],
-        backgroundColor: ['#34d399', '#facc15', '#ef4444'],
+        label: 'Operaciones',
+        data: [typeCounts.Compra || 0, typeCounts.Transferencia || 0, typeCounts.Retiro || 0, typeCounts.Pago || 0],
+        backgroundColor: ['#38bdf8', '#34d399', '#facc15', '#fb923c'],
         borderRadius: 8
       }]
     },
@@ -1834,98 +2020,6 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
-    }
-  });
-
-  const hourlyBuckets = Array.from({ length: 6 }, (_, index) => {
-    const hour = new Date();
-    hour.setHours(hour.getHours() - (5 - index));
-    return `${hour.getHours()}:00`;
-  });
-  const alertSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
-  const criticalSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => tx.riskLevel === 'Crítico' && new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
-  const resolvedSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => tx.riskLevel === 'Bajo' && new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
-  const pendingSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => tx.isSuspicious && new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
-
-  ANALYSIS_CHARTS.alerts = new window.Chart(alertsCtx, {
-    type: 'line',
-    data: {
-      labels: hourlyBuckets,
-      datasets: [
-        { label: 'Alertas', data: alertSeries, borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.2)', tension: 0.3 },
-        { label: 'Críticas', data: criticalSeries, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.2)', tension: 0.3 },
-        { label: 'Resueltas', data: resolvedSeries, borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.18)', tension: 0.3 },
-        { label: 'Pendientes', data: pendingSeries, borderColor: '#facc15', backgroundColor: 'rgba(250,204,21,0.2)', tension: 0.3 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#e2e8f0' } } },
-      scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
-    }
-  });
-
-  const peakHours = transactions.reduce((acc, tx) => {
-    const hour = new Date(tx.timestamp).getHours();
-    acc[hour] = (acc[hour] || 0) + (tx.isSuspicious ? 1 : 0);
-    return acc;
-  }, {});
-  const countryCounts = transactions.reduce((acc, tx) => {
-    acc[tx.country] = (acc[tx.country] || 0) + (tx.isSuspicious ? 1 : 0);
-    return acc;
-  }, {});
-  const deviceCounts = transactions.reduce((acc, tx) => {
-    acc[tx.device] = (acc[tx.device] || 0) + (tx.isSuspicious ? 1 : 0);
-    return acc;
-  }, {});
-  const typeCounts = transactions.reduce((acc, tx) => {
-    acc[tx.type] = (acc[tx.type] || 0) + (tx.isSuspicious ? 1 : 0);
-    return acc;
-  }, {});
-
-  ANALYSIS_CHARTS.patterns = new window.Chart(patternsCtx, {
-    type: 'radar',
-    data: {
-      labels: ['Horarios', 'Países', 'Dispositivos', 'Tipos'],
-      datasets: [{
-        label: 'Incidencia',
-        data: [
-          Object.values(peakHours).reduce((sum, value) => sum + value, 0) || 1,
-          Object.values(countryCounts).reduce((sum, value) => sum + value, 0) || 1,
-          Object.values(deviceCounts).reduce((sum, value) => sum + value, 0) || 1,
-          Object.values(typeCounts).reduce((sum, value) => sum + value, 0) || 1
-        ],
-        borderColor: '#38bdf8',
-        backgroundColor: 'rgba(56,189,248,0.2)'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { r: { angleLines: { color: 'rgba(255,255,255,0.16)' }, grid: { color: 'rgba(255,255,255,0.16)' }, pointLabels: { color: '#e2e8f0' }, suggestedMin: 0, suggestedMax: Math.max(4, transactions.length) } }
-    }
-  });
-
-  ANALYSIS_CHARTS.audit = new window.Chart(auditCtx, {
-    type: 'line',
-    data: {
-      labels: transactions.map((tx) => `${tx.date} ${tx.time}`),
-      datasets: [{
-        label: 'Riesgo',
-        data: transactions.map((tx) => ({ x: `${tx.date} ${tx.time}`, y: tx.isSuspicious ? (tx.riskLevel === 'Crítico' ? 90 : tx.riskLevel === 'Alto' ? 70 : 40) : 10 })),
-        borderColor: '#34d399',
-        backgroundColor: 'rgba(52,211,153,0.2)',
-        tension: 0.2,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#e2e8f0' } } },
-      scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { ticks: { color: '#cbd5e1' }, grid: { display: false } } }
     }
   });
 
@@ -1939,10 +2033,10 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
   ANALYSIS_CHARTS.transactionStatus = new window.Chart(transactionStatusCtx, {
     type: 'bar',
     data: {
-      labels: ['Aprobadas', 'Denegadas', 'Riesgos', 'Fraudes'],
+      labels: ['Aprobadas', 'Bloqueadas', 'Riesgos', 'Fraudes'],
       datasets: [{
         label: 'Eventos',
-        data: [summary.approvedCount, summary.deniedCount, summary.suspiciousCount, summary.fraudCount],
+        data: [summary.approvedCount, summary.deniedCount, suspiciousCount, fraudCount],
         backgroundColor: ['#34d399', '#ef4444', '#fb923c', '#f59e0b'],
         borderRadius: 8
       }]
@@ -1954,6 +2048,28 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
       scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
     }
   });
+
+  if (rulesCtx) {
+    ANALYSIS_CHARTS.rules = new window.Chart(rulesCtx, {
+      type: 'bar',
+      data: {
+        labels: topRules.length ? topRules.map(([rule]) => rule) : ['Sin datos'],
+        datasets: [{
+          label: 'Activaciones',
+          data: topRules.length ? topRules.map(([, value]) => value) : [0],
+          backgroundColor: '#60a5fa',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, y: { grid: { display: false } } }
+      }
+    });
+  }
 }
 
 // ─── Setup Interactive Banking ───
@@ -1988,6 +2104,9 @@ function setupInteractiveBanking(user) {
   const bankingTransactionsList = document.getElementById('bankingTransactionsList');
   const btnSimulateWithdrawal = document.getElementById('btnSimulateWithdrawal');
   const btnSimulatePayment = document.getElementById('btnSimulatePayment');
+  const btnStartSimulation = document.getElementById('btnStartSimulation');
+  const btnStopSimulation = document.getElementById('btnStopSimulation');
+  const btnResetSimulation = document.getElementById('btnResetSimulation');
 
   const PURCHASE_LIMIT = 2000;
   const TRANSFER_LIMIT = 1500;
@@ -2521,6 +2640,27 @@ function setupInteractiveBanking(user) {
         showToast('No hay alertas críticas activas.', 'success');
         addAuditLog('Revisión de Alertas: Sin amenazas detectadas.', 'val-success');
       }
+    });
+  }
+
+  if (btnStartSimulation) {
+    btnStartSimulation.addEventListener('click', () => {
+      startAnalysisSimulation();
+      addAuditLog('▶ Iniciada simulación de riesgo y fraude.', 'val-success');
+    });
+  }
+
+  if (btnStopSimulation) {
+    btnStopSimulation.addEventListener('click', () => {
+      stopAnalysisSimulation();
+      addAuditLog('⏹ Simulación detenida manualmente.', 'val-warning');
+    });
+  }
+
+  if (btnResetSimulation) {
+    btnResetSimulation.addEventListener('click', () => {
+      resetAnalysisSimulation();
+      addAuditLog('↺ Simulación reiniciada.', 'val-success');
     });
   }
 }

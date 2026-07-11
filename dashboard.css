@@ -715,6 +715,32 @@ body::before {
   color: #34d399;
 }
 
+.simulation-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 18px 0 22px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sim-control-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sim-status-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.14);
+  color: #bbf7d0;
+  font-weight: 600;
+}
+
 .analysis-alert {
   display: flex;
   justify-content: space-between;
@@ -829,6 +855,15 @@ body::before {
   inset: 0;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
   animation: flow-shimmer 1.7s linear infinite;
+}
+
+.money-flow-line.is-blocked {
+  background: linear-gradient(90deg, rgba(248,113,113,0.35), rgba(248,113,113,0.55));
+}
+
+.money-flow-node.is-blocked {
+  background: rgba(248,113,113,0.2);
+  color: #fecaca;
 }
 
 .money-flow-card__meta {
@@ -1031,6 +1066,40 @@ body::before {
   color: rgba(148,163,184,0.95);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.analysis-history-table tr.is-suspicious {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.analysis-audit-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.analysis-audit-panel h5 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+}
+
+.analysis-audit-list {
+  display: grid;
+  gap: 10px;
+}
+
+.analysis-audit-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.7);
+  color: rgba(226,232,240,0.85);
+  border-left: 3px solid rgba(56, 189, 248, 0.6);
+}
+
+.analysis-audit-item--fraud {
+  border-left-color: rgba(248, 113, 113, 0.8);
 }
 
 .chat-fab svg {

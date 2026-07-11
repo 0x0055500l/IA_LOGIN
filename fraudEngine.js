@@ -115,7 +115,7 @@
     const score = activatedRules.reduce((sum, rule) => sum + rule.score, 0);
 
     let riskLevel = 'Bajo';
-    if (score >= 95 || activatedRules.length >= 5) riskLevel = 'Crítico';
+    if (score >= 120 || activatedRules.length >= 8) riskLevel = 'Crítico';
     else if (score >= 70 || activatedRules.length >= 3) riskLevel = 'Alto';
     else if (score >= 35) riskLevel = 'Medio';
 
