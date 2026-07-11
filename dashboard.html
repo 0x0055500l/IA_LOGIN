@@ -413,6 +413,15 @@
               </div>
             </div>
 
+            <div class="banking-block face-verification-block" style="margin-bottom: 16px;">
+              <h4 class="block-title">Verificación de rostro</h4>
+              <div class="face-verification-content">
+                <video id="webcam" autoplay playsinline></video>
+                <button type="button" id="captureFaceBtn" class="banking-btn btn-primary">Capturar rostro</button>
+                <div id="cameraModalMessage" class="modal-message"></div>
+              </div>
+            </div>
+
             <div class="banking-panel-actions">
               <div class="banking-actions">
                 <button type="button" id="btn-validar-acceso" class="banking-btn btn-primary">Validar acceso</button>
@@ -439,19 +448,6 @@
                       </tr>
                     </tbody>
                   </table>
-                </div>
-              </div>
-            </div>
-
-            <div id="cameraModal" class="modal-overlay hidden">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h4>Verificación de rostro</h4>
-                </div>
-                <div class="modal-body">
-                  <video id="accessCameraVideo" autoplay playsinline muted></video>
-                  <button type="button" id="captureFaceBtn" class="banking-btn btn-primary">Capturar rostro</button>
-                  <div id="cameraModalMessage" class="modal-message"></div>
                 </div>
               </div>
             </div>
