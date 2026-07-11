@@ -124,50 +124,98 @@
           </article>
         </section>
 
-        <section id="seccion-analisis" class="hidden panel analysis-section">
+        <section id="seccion-analisis" class="hidden panel analysis-section bg-slate-950 text-slate-100">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Insights del Motor</p>
-              <h3>Análisis Analítico del Motor de Inferencia</h3>
+              <p class="eyebrow text-slate-400">Motor de Inferencia</p>
+              <h2 class="text-2xl font-semibold text-white">Análisis Analítico del Motor de Inferencia</h2>
             </div>
           </div>
 
-          <div class="analysis-metrics-grid">
-            <article class="metric-card">
-              <span>Eficiencia de Detección</span>
-              <strong>99.2%</strong>
+          <div class="analysis-summary-grid grid gap-4 mb-6">
+            <article class="metric-card rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl ring-1 ring-emerald-500/10">
+              <p class="text-slate-400 mb-2">Eficiencia de Detección</p>
+              <strong class="text-3xl text-emerald-400">99.2%</strong>
             </article>
-            <article class="metric-card">
-              <span>Tiempo Promedio de Inferencia</span>
-              <strong>14ms</strong>
+            <article class="metric-card rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl ring-1 ring-sky-500/10">
+              <p class="text-slate-400 mb-2">Tiempo Promedio de Inferencia</p>
+              <strong class="text-3xl text-sky-400">14ms</strong>
             </article>
-            <article class="metric-card">
-              <span>Falsos Positivos</span>
-              <strong>0.4%</strong>
+            <article class="metric-card rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl ring-1 ring-rose-500/10">
+              <p class="text-slate-400 mb-2">Falsos Positivos</p>
+              <strong class="text-3xl text-rose-400">0.4%</strong>
             </article>
           </div>
 
-          <div class="analysis-charts-grid">
-            <div class="chart-card">
-              <h4>Intentos de Fraude Detectados por Hora</h4>
-              <div class="bar-chart">
-                <div class="bar-item"><strong>01h</strong><div class="bar bar-25"></div></div>
-                <div class="bar-item"><strong>04h</strong><div class="bar bar-40"></div></div>
-                <div class="bar-item"><strong>08h</strong><div class="bar bar-70"></div></div>
-                <div class="bar-item"><strong>12h</strong><div class="bar bar-85"></div></div>
-                <div class="bar-item"><strong>16h</strong><div class="bar bar-60"></div></div>
-                <div class="bar-item"><strong>20h</strong><div class="bar bar-50"></div></div>
+          <div class="analysis-charts-grid grid gap-6 lg:grid-cols-2">
+            <div class="chart-card rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-semibold text-white">Intentos de Fraude Detectados por Hora</h4>
+                <span class="text-sm text-slate-400">Últimas 24 horas</span>
+              </div>
+              <div class="space-y-4">
+                <div class="bar-row">
+                  <div class="bar-label text-sm text-slate-300">01h</div>
+                  <div class="bar-track bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div class="bar bg-blue-500 h-3 rounded-full" style="width: 25%;"></div>
+                  </div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label text-sm text-slate-300">04h</div>
+                  <div class="bar-track bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div class="bar bg-sky-500 h-3 rounded-full" style="width: 40%;"></div>
+                  </div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label text-sm text-slate-300">08h</div>
+                  <div class="bar-track bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div class="bar bg-emerald-500 h-3 rounded-full" style="width: 70%;"></div>
+                  </div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label text-sm text-slate-300">12h</div>
+                  <div class="bar-track bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div class="bar bg-emerald-500 h-3 rounded-full" style="width: 85%;"></div>
+                  </div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label text-sm text-slate-300">16h</div>
+                  <div class="bar-track bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div class="bar bg-lime-500 h-3 rounded-full" style="width: 60%;"></div>
+                  </div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label text-sm text-slate-300">20h</div>
+                  <div class="bar-track bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div class="bar bg-emerald-500 h-3 rounded-full" style="width: 50%;"></div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="chart-card donut-panel">
-              <h4>Distribución de Alertas</h4>
-              <div class="donut-graphic">
-                <div class="donut-circle"></div>
-                <div class="donut-labels">
-                  <span><strong>46%</strong> Monto sospechoso</span>
-                  <span><strong>28%</strong> Ubicación inusual</span>
-                  <span><strong>26%</strong> Suplantación de identidad</span>
+            <div class="chart-card rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-semibold text-white">Distribución de Alertas</h4>
+                <span class="text-sm text-slate-400">Segmento</span>
+              </div>
+              <div class="grid gap-6 lg:grid-cols-[180px_1fr] items-center">
+                <div class="relative mx-auto w-40 h-40 rounded-full bg-slate-950 ring-2 ring-slate-700">
+                  <div class="absolute inset-0 rounded-full bg-[conic-gradient(at_top,_#22c55e_0%,_#22c55e_46%,_#38bdf8_46%,_#38bdf8_74%,_#fb7185_74%,_#fb7185_100%)]"></div>
+                  <div class="absolute inset-12 rounded-full bg-slate-900"></div>
+                </div>
+                <div class="space-y-3 text-sm text-slate-300">
+                  <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-950 p-3 border border-white/10">
+                    <span>Monto sospechoso</span>
+                    <span class="text-emerald-400 font-semibold">46%</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-950 p-3 border border-white/10">
+                    <span>Ubicación inusual</span>
+                    <span class="text-sky-400 font-semibold">28%</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-950 p-3 border border-white/10">
+                    <span>Suplantación de identidad</span>
+                    <span class="text-rose-400 font-semibold">26%</span>
+                  </div>
                 </div>
               </div>
             </div>
