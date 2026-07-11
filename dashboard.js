@@ -1403,7 +1403,12 @@ function setupInteractiveBanking(user) {
   const cardNumber = document.getElementById('cardNumber');
   const cardExpiry = document.getElementById('cardExpiry');
   const cardCvv = document.getElementById('cardCvv');
-  const btnValidateAccess = document.getElementById('btnValidateAccess');
+  const btnValidateAccess = document.getElementById('btn-validar-acceso');
+  const cameraModal = document.getElementById('cameraModal');
+  const closeCameraModal = document.getElementById('closeCameraModal');
+  const accessCameraVideo = document.getElementById('accessCameraVideo');
+  const captureFaceBtn = document.getElementById('captureFaceBtn');
+  const cameraModalMessage = document.getElementById('cameraModalMessage');
   const btnBlockCard = document.getElementById('btnBlockCard');
   const btnReactivateCard = document.getElementById('btnReactivateCard');
   const btnReviewAlerts = document.getElementById('btnReviewAlerts');
@@ -1599,6 +1604,75 @@ function setupInteractiveBanking(user) {
   }
 
   // Validate access button
+  let cameraStream = null;
+
+  const hideCameraModal = () => {
+    if (cameraModal) cameraModal.classList.add('hidden');
+    if (accessCameraVideo) {
+      accessCameraVideo.pause();
+      accessCameraVideo.srcObject = null;
+    }
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      cameraStream = null;
+    }
+    if (cameraModalMessage) {
+      cameraModalMessage.textContent = '';
+      cameraModalMessage.className = 'modal-message';
+    }
+  };
+
+  const showCameraModal = async () => {
+    if (cameraModal) cameraModal.classList.remove('hidden');
+    if (!accessCameraVideo) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      accessCameraVideo.srcObject = stream;
+      await accessCameraVideo.play();
+      cameraStream = stream;
+      if (cameraModalMessage) {
+        cameraModalMessage.textContent = 'Cámara activada. Presiona Capturar rostro.';
+        cameraModalMessage.className = 'modal-message';
+      }
+    } catch (error) {
+      if (cameraModalMessage) {
+        cameraModalMessage.textContent = 'No se pudo acceder a la cámara. Verifica permisos o usa otro navegador.';
+        cameraModalMessage.className = 'modal-message error';
+      }
+      console.error('Error al activar cámara:', error);
+    }
+  };
+
+  if (closeCameraModal) {
+    closeCameraModal.addEventListener('click', hideCameraModal);
+  }
+
+  if (captureFaceBtn) {
+    captureFaceBtn.addEventListener('click', () => {
+      if (!accessCameraVideo || !accessCameraVideo.srcObject) {
+        if (cameraModalMessage) {
+          cameraModalMessage.textContent = 'La cámara no está disponible. Intenta de nuevo.';
+          cameraModalMessage.className = 'modal-message error';
+        }
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = accessCameraVideo.videoWidth || 320;
+      canvas.height = accessCameraVideo.videoHeight || 240;
+      const context = canvas.getContext('2d');
+      context.drawImage(accessCameraVideo, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL('image/png');
+
+      if (cameraModalMessage) {
+        cameraModalMessage.textContent = 'Rostro capturado correctamente.';
+        cameraModalMessage.className = 'modal-message success';
+      }
+      console.log('Face capture data:', imageData);
+    });
+  }
+
   if (btnValidateAccess) {
     btnValidateAccess.addEventListener('click', async () => {
       if (!isCardActive()) {
@@ -1611,12 +1685,6 @@ function setupInteractiveBanking(user) {
       const expiryVal = cardExpiry ? cardExpiry.value : '';
       const cvvVal = cardCvv ? cardCvv.value : '';
 
-      // Validate device status
-      const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
-      if (!isDeviceTrusted) {
-      }
-
-      // Validate Card Details
       const isCardValid = cardNumVal.length === 16 && expiryVal.length === 5 && cvvVal.length === 3;
       if (!isCardValid) {
         if (statusCardVal) {
@@ -1628,18 +1696,12 @@ function setupInteractiveBanking(user) {
         return;
       }
 
-      // All tests passed!
       if (statusCardVal) {
         statusCardVal.textContent = '✓ Validada';
         statusCardVal.className = 'status-value val-success';
       }
-      showToast('Acceso Bancario Autorizado', 'success');
-      addAuditLog('¡ACCESO AUTORIZADO! Validación de tarjeta y dispositivo aprobada.', 'val-success');
 
-      // Log to global system history
-      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-        window.registrarAccion('acceso_bancario_validado', 'exito', { user: user.email });
-      }
+      showCameraModal();
     });
   }
 
