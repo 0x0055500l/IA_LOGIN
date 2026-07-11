@@ -818,8 +818,9 @@ function setupSettingsHandlers(user, expiresAt) {
 
     let editingIdx = -1; // -1 = editing "new" or default
 
-    function luhnCheck(num) {
-      return window.cardUtils?.luhnCheck(num) ?? false;
+    function isCardNumberFormatValid(num) {
+      const digits = String(num || '').replace(/\D/g, '');
+      return /^\d{13,19}$/.test(digits);
     }
 
     function isExpiryFuture(exp) {
@@ -842,7 +843,7 @@ function setupSettingsHandlers(user, expiresAt) {
     cfgNum.addEventListener('input', (e) => {
       let v = e.target.value.replace(/\D/g, '');
       let formatted = '';
-      for (let i = 0; i < v.length && i < 16; i++) {
+      for (let i = 0; i < v.length && i < 19; i++) {
         if (i > 0 && i % 4 === 0) formatted += ' ';
         formatted += v[i];
       }
@@ -865,7 +866,7 @@ function setupSettingsHandlers(user, expiresAt) {
       e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
     });
 
-    // ── Live Luhn badge ──
+    // ── Live card number badge ──
     function updateLuhnBadge() {
       const lang = localStorage.getItem('userLanguage') || 'es';
       const digits = cfgNum.value.replace(/\D/g, '');
@@ -874,11 +875,11 @@ function setupSettingsHandlers(user, expiresAt) {
         luhnBadge.className = 'card-luhn-badge';
         return;
       }
-      if (luhnCheck(cfgNum.value)) {
-        luhnBadge.textContent = DASHBOARD_TRANSLATIONS[lang].cards_luhn_valid;
+      if (isCardNumberFormatValid(cfgNum.value)) {
+        luhnBadge.textContent = lang === 'en' ? 'Format OK' : 'Formato válido';
         luhnBadge.className = 'card-luhn-badge valid';
       } else {
-        luhnBadge.textContent = DASHBOARD_TRANSLATIONS[lang].cards_luhn_invalid;
+        luhnBadge.textContent = lang === 'en' ? 'Use 13-19 digits' : 'Usa 13-19 dígitos';
         luhnBadge.className = 'card-luhn-badge invalid';
       }
     }
@@ -982,12 +983,14 @@ function setupSettingsHandlers(user, expiresAt) {
       btnValidate.addEventListener('click', () => {
         const lang = localStorage.getItem('userLanguage') || 'es';
         updateLuhnBadge();
-        if (luhnCheck(cfgNum.value)) {
-          showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_luhn_valid, 'success');
-          showToast(DASHBOARD_TRANSLATIONS[lang].cards_luhn_valid, 'success');
+        if (isCardNumberFormatValid(cfgNum.value)) {
+          const message = lang === 'en' ? 'Card number format accepted.' : 'Formato de tarjeta aceptado.';
+          showCardFeedback(message, 'success');
+          showToast(message, 'success');
         } else {
-          showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
-          showToast(DASHBOARD_TRANSLATIONS[lang].cards_luhn_invalid, 'error');
+          const message = lang === 'en' ? 'Enter a valid card number with 13 to 19 digits.' : 'Ingresa un número de tarjeta válido con 13 a 19 dígitos.';
+          showCardFeedback(message, 'error');
+          showToast(message, 'error');
         }
       });
     }
@@ -1008,9 +1011,10 @@ function setupSettingsHandlers(user, expiresAt) {
         showToast(message, 'error');
         return false;
       }
-      if (!luhnCheck(cfgNum.value)) {
-        showCardFeedback(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
-        showToast(DASHBOARD_TRANSLATIONS[lang].cards_error_number, 'error');
+      if (!isCardNumberFormatValid(cfgNum.value)) {
+        const message = lang === 'en' ? 'Enter a valid card number with 13 to 19 digits.' : 'Ingresa un número de tarjeta válido con 13 a 19 dígitos.';
+        showCardFeedback(message, 'error');
+        showToast(message, 'error');
         return false;
       }
       if (!isExpiryFuture(cfgExp.value)) {
