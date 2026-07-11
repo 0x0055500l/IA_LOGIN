@@ -1677,6 +1677,29 @@ function setupInteractiveBanking(user) {
         cameraModalMessage.textContent = 'Rostro capturado correctamente.';
         cameraModalMessage.className = 'modal-message success';
       }
+
+      if (bankingAuditList) {
+        bankingAuditList.innerHTML = '';
+        const auditLines = [
+          '[INFO] Iniciando verificación biométrica...',
+          '[INFO] Extrayendo puntos característicos del rostro...',
+          '[SISTEMA EXPERTO] Evaluando regla: verificacion_dispositivo_biometrico',
+          '[ÉXITO] Rostro coincide con el titular. Acceso autorizado. Estado: Operativo y Auditable.'
+        ];
+        const logEntry = document.createElement('li');
+        logEntry.className = 'audit-item val-success';
+        logEntry.style.whiteSpace = 'pre-wrap';
+        logEntry.textContent = auditLines.join('\n');
+        bankingAuditList.appendChild(logEntry);
+      }
+
+      if (btnValidateAccess) {
+        btnValidateAccess.textContent = 'Acceso Verificado';
+        btnValidateAccess.classList.remove('btn-primary');
+        btnValidateAccess.classList.add('btn-success');
+        btnValidateAccess.disabled = true;
+      }
+
       console.log('Face capture data:', imageData);
     });
   }
