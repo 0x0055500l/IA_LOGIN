@@ -584,6 +584,9 @@ function setupSettingsHandlers(user, expiresAt) {
     if (targetBtn) targetBtn.classList.add('active');
   };
 
+  // Inicializar la pestaña activa por defecto
+  window.switchSettingsPane('perfilTab');
+
   // Theme selection cards handler
   window.selectVisualTheme = function (theme) {
     applyVisualTheme(theme);
