@@ -1065,7 +1065,14 @@ body::before {
 }
 
 .settings-pane.active {
-  display: block;
+  display: block !important;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-pane:not(.active) {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .settings-pane h3 {

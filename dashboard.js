@@ -564,8 +564,12 @@ function setupSettingsHandlers(user, expiresAt) {
 
   // Switch tabs handler
   window.switchSettingsPane = function (paneId) {
-    document.querySelectorAll('.settings-pane').forEach(pane => pane.classList.remove('active'));
-    document.getElementById(paneId).classList.add('active');
+    const panes = document.querySelectorAll('.settings-pane');
+    panes.forEach(pane => {
+      const isActive = pane.id === paneId;
+      pane.classList.toggle('active', isActive);
+      pane.style.display = isActive ? 'block' : 'none';
+    });
 
     document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
 
@@ -576,7 +580,8 @@ function setupSettingsHandlers(user, expiresAt) {
       tarjetasTab: 'btnTarjetasTab',
       seguridadTab: 'btnSeguridadTab'
     };
-    document.getElementById(btnMap[paneId]).classList.add('active');
+    const targetBtn = document.getElementById(btnMap[paneId]);
+    if (targetBtn) targetBtn.classList.add('active');
   };
 
   // Theme selection cards handler
