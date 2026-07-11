@@ -2400,26 +2400,6 @@ function setupInteractiveBanking(user) {
     captureFaceBtn.addEventListener('click', captureFace);
   }
 
-  // Referencias locales directas para asegurar que se ejecute
-  const btnValidarLocal = document.getElementById('btn-validar-acceso');
-  const videoWebcamLocal = document.getElementById('webcam');
-
-  if (btnValidarLocal && videoWebcamLocal) {
-      btnValidarLocal.addEventListener('click', () => {
-          console.log('Intentando encender la cámara...');
-          navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
-              .then(stream => {
-                  videoWebcamLocal.srcObject = stream;
-                  videoWebcamLocal.play();
-                  console.log('Cámara encendida correctamente.');
-              })
-              .catch(err => {
-                  console.error('Error al acceder a la cámara web:', err);
-                  alert('No se pudo activar la cámara. Revisa los permisos del navegador o si otra app la usa.');
-              });
-      });
-  }
-
   // Block Card button
   if (btnBlockCard) {
     btnBlockCard.addEventListener('click', () => {
@@ -2655,4 +2635,36 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('load', () => {
     renderAnalysisDashboard();
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const btnValidarLocal = document.getElementById('btn-validar-acceso');
+    const videoWebcamLocal = document.getElementById('webcam');
+
+    if (btnValidarLocal && videoWebcamLocal) {
+        console.log('Botones de la cámara vinculados globalmente de forma exitosa.');
+        
+        btnValidarLocal.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Botón presionado. Intentando encender la cámara...');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Tu navegador o protocolo (HTTP/HTTPS) no soporta el acceso a la cámara.');
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    videoWebcamLocal.srcObject = stream;
+                    videoWebcamLocal.play();
+                    console.log('Transmisión de video iniciada.');
+                })
+                .catch(err => {
+                    console.error('Error directo de hardware/permisos:', err);
+                    alert('Error de hardware: Revisa si la cámara está desconectada, bloqueada en los permisos del candado del navegador, o usada por otra app (como Zoom/Teams).');
+                });
+        });
+    } else {
+        console.error('No se encontraron los elementos HTML btn-validar-acceso o webcam en el DOM.');
+    }
 });
