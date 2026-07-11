@@ -1899,3 +1899,47 @@ function setupInteractiveBanking(user) {
     });
   }
 }
+
+function toggleAnalysisSection(show) {
+  const dashboardShell = document.getElementById('dashboardShell');
+  const analysisSection = document.getElementById('seccion-analisis');
+  const sidebar = dashboardShell ? dashboardShell.querySelector('aside') : null;
+
+  if (!dashboardShell || !analysisSection) return;
+
+  const viewNodes = Array.from(dashboardShell.children).filter((node) => node !== sidebar);
+
+  if (show) {
+    viewNodes.forEach((node) => {
+      if (node !== analysisSection) node.classList.add('hidden');
+    });
+    analysisSection.classList.remove('hidden');
+  } else {
+    viewNodes.forEach((node) => {
+      if (node !== analysisSection) node.classList.remove('hidden');
+    });
+    analysisSection.classList.add('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const analysisBtn = document.getElementById('btn-analisis');
+  const navReglasBtn = document.getElementById('navReglas');
+  const navInicioBtn = document.getElementById('navInicio');
+
+  if (analysisBtn) {
+    analysisBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleAnalysisSection(true);
+    });
+  }
+
+  [navReglasBtn, navInicioBtn].forEach((btn) => {
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleAnalysisSection(false);
+      });
+    }
+  });
+});
