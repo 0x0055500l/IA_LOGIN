@@ -2081,8 +2081,6 @@ function setupInteractiveBanking(user) {
   const cardExpiry = document.getElementById('cardExpiry');
   const cardCvv = document.getElementById('cardCvv');
   const btnValidateAccess = document.getElementById('btn-validar-acceso');
-  const cameraModal = document.getElementById('cameraModal');
-  const closeCameraModal = document.getElementById('closeCameraModal');
   const webcamVideo = document.getElementById('webcam');
   const captureFaceBtn = document.getElementById('btn-capturar-rostro');
   const cameraMessage = document.getElementById('cameraModalMessage');
