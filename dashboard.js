@@ -1406,6 +1406,371 @@ function showProfileFeedback(message, type) {
 window.guardarPerfil = guardarPerfil;
 window.showProfileFeedback = showProfileFeedback;
 
+// ─── Advanced Analysis Dashboard Helpers ───
+const ANALYSIS_STORAGE_KEY = 'antiFraudAnalysisTransactions';
+const ANALYSIS_CHARTS = {};
+
+function getAnalysisTransactions() {
+  try {
+    return JSON.parse(localStorage.getItem(ANALYSIS_STORAGE_KEY) || '[]');
+  } catch (error) {
+    console.warn('No se pudieron leer las transacciones de análisis:', error);
+    return [];
+  }
+}
+
+function persistAnalysisTransactions(transactions) {
+  localStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(transactions));
+}
+
+function formatCurrency(value) {
+  return `$${Number(value || 0).toFixed(2)}`;
+}
+
+function getRiskColor(level) {
+  if (level === 'Crítico') return '#ef4444';
+  if (level === 'Alto') return '#fb923c';
+  if (level === 'Medio') return '#facc15';
+  return '#34d399';
+}
+
+function getAnalysisRiskLabel(level) {
+  if (level === 'Crítico') return 'Crítico';
+  if (level === 'Alto') return 'Alto';
+  if (level === 'Medio') return 'Medio';
+  return 'Bajo';
+}
+
+function getAnalysisTransactionProfile(type, amount, transactions) {
+  const history = transactions.slice(0, 8);
+  const recentCount = history.filter((tx) => tx.type === 'Transferencia' || tx.type === 'Pago').length;
+  const suspiciousCount = history.filter((tx) => tx.isSuspicious).length;
+  const usualCountry = history[0]?.country || 'HN';
+  const countries = ['HN', 'US', 'MX', 'ES', 'CR', 'PA'];
+  const cities = ['Tegucigalpa', 'San Pedro Sula', 'Miami', 'Ciudad de México', 'Madrid', 'San José'];
+  const devices = ['iPhone 15', 'Samsung S24', 'Windows Laptop', 'MacBook Pro', 'unknown-device'];
+  const ips = ['201.192.10.34', '45.132.88.5', '172.16.8.11', '8.8.8.8', '200.42.29.17'];
+  const country = history.length > 0 && Math.random() > 0.6 ? (history[0].country === 'HN' ? countries[1] : 'HN') : countries[Math.floor(Math.random() * countries.length)];
+  const city = cities[Math.floor(Math.random() * cities.length)];
+  const device = suspiciousCount > 0 || Math.random() > 0.7 ? devices[4] : devices[Math.floor(Math.random() * (devices.length - 1))];
+  const ip = ips[Math.floor(Math.random() * ips.length)];
+  const ipChanged = history.length > 0 && Math.random() > 0.6;
+  const deviceChanged = history.length > 0 && Math.random() > 0.7;
+  const suspiciousDestination = ['Transferencia', 'Pago'].includes(type) && (amount > 2200 || Math.random() > 0.7);
+  const repeatedTransfers = recentCount + (Math.random() > 0.5 ? 2 : 0);
+  const timeWindowMinutes = repeatedTransfers > 0 ? 2 : 0;
+  const previousLocations = history.map((tx) => tx.city).filter(Boolean);
+  const failedAttempts = recentCount > 0 && Math.random() > 0.8 ? 3 : 0;
+  const historyAvg = history.length > 0 ? history.reduce((sum, tx) => sum + Number(tx.amountValue || 0), 0) / history.length : 300;
+
+  return {
+    country,
+    city,
+    device,
+    ip,
+    ipChanged,
+    deviceChanged,
+    suspiciousDestination,
+    repeatedTransfers,
+    timeWindowMinutes,
+    previousLocations,
+    failedAttempts,
+    historyAvg,
+    usualCountry
+  };
+}
+
+function registerAnalysisTransaction(type, amount, status = 'Procesada') {
+  const transactions = getAnalysisTransactions();
+  const userName = sessionStorage.getItem('userName') || 'Usuario';
+  const userEmail = sessionStorage.getItem('userEmail') || 'usuario@demo.com';
+  const profile = getAnalysisTransactionProfile(type, amount, transactions);
+  const evaluation = window.evaluateTransactionRules({
+    amount,
+    country: profile.country,
+    usualCountry: profile.usualCountry,
+    device: profile.device,
+    deviceChanged: profile.deviceChanged,
+    repeatedTransfers: profile.repeatedTransfers,
+    historyAvg: profile.historyAvg,
+    newAccount: false,
+    suspiciousDestination: profile.suspiciousDestination,
+    timeWindowMinutes: profile.timeWindowMinutes,
+    ipChanged: profile.ipChanged,
+    previousLocations: profile.previousLocations,
+    failedAttempts: profile.failedAttempts
+  });
+
+  const tx = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    timestamp: new Date().toISOString(),
+    date: new Date().toLocaleDateString('es-HN'),
+    time: new Date().toLocaleTimeString('es-HN'),
+    amount: Number(amount || 0),
+    amountValue: Number(amount || 0),
+    amountLabel: formatCurrency(amount),
+    type,
+    country: profile.country,
+    city: profile.city,
+    ip: profile.ip,
+    device: profile.device,
+    status: evaluation.isSuspicious ? (evaluation.riskLevel === 'Crítico' ? 'Bloqueada' : 'Sospechosa') : status,
+    user: userName,
+    email: userEmail,
+    riskLevel: evaluation.riskLevel,
+    isSuspicious: evaluation.isSuspicious,
+    score: evaluation.score,
+    rulesActivated: evaluation.rulesActivated.map((rule) => rule.name),
+    explanation: evaluation.explanation,
+    recommendations: evaluation.recommendations || [],
+    analysisResult: evaluation.riskLevel === 'Bajo' ? 'Aprobada' : 'Revisar'
+  };
+
+  const nextTransactions = [tx, ...transactions].slice(0, 50);
+  persistAnalysisTransactions(nextTransactions);
+  renderAnalysisDashboard();
+  return tx;
+}
+
+function renderAnalysisDashboard() {
+  const transactions = getAnalysisTransactions();
+  const latestTx = transactions[0];
+  const safeCount = transactions.filter((tx) => !tx.isSuspicious).length;
+  const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && tx.riskLevel !== 'Crítico').length;
+  const fraudCount = transactions.filter((tx) => tx.riskLevel === 'Crítico').length;
+  const activeAlerts = transactions.filter((tx) => tx.isSuspicious).length;
+  const protectedMoney = transactions.filter((tx) => !tx.isSuspicious).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+  const riskPct = transactions.length ? Math.round((activeAlerts / transactions.length) * 100) : 0;
+  const latestTime = latestTx ? `${latestTx.date} ${latestTx.time}` : '—';
+
+  const totalTxEl = document.getElementById('analysisTotalTx');
+  const secureTxEl = document.getElementById('analysisSecureTx');
+  const suspiciousTxEl = document.getElementById('analysisSuspiciousTx');
+  const fraudTxEl = document.getElementById('analysisFraudTx');
+  const riskPctEl = document.getElementById('analysisRiskPct');
+  const protectedMoneyEl = document.getElementById('analysisProtectedMoney');
+  const activeAlertsEl = document.getElementById('analysisActiveAlerts');
+  const lastActivityEl = document.getElementById('analysisLastActivity');
+  const globalRiskLabelEl = document.getElementById('analysisGlobalRiskLabel');
+  const gaugeValueEl = document.getElementById('analysisGaugeValue');
+  const gaugeLevelEl = document.getElementById('analysisGaugeLevel');
+  const gaugeRingEl = document.getElementById('riskGauge')?.querySelector('.risk-gauge__ring');
+  const alertPanel = document.getElementById('analysisAlertPanel');
+  const alertTitleEl = document.getElementById('analysisAlertTitle');
+  const alertMessageEl = document.getElementById('analysisAlertMessage');
+  const alertRulesEl = document.getElementById('analysisAlertRules');
+  const flowTextEl = document.getElementById('analysisFlowText');
+  const flowStatusEl = document.getElementById('analysisFlowStatus');
+  const historyBodyEl = document.getElementById('analysisHistoryTableBody');
+
+  if (totalTxEl) totalTxEl.textContent = transactions.length;
+  if (secureTxEl) secureTxEl.textContent = safeCount;
+  if (suspiciousTxEl) suspiciousTxEl.textContent = suspiciousCount;
+  if (fraudTxEl) fraudTxEl.textContent = fraudCount;
+  if (riskPctEl) riskPctEl.textContent = `${riskPct}%`;
+  if (protectedMoneyEl) protectedMoneyEl.textContent = formatCurrency(protectedMoney);
+  if (activeAlertsEl) activeAlertsEl.textContent = activeAlerts;
+  if (lastActivityEl) lastActivityEl.textContent = latestTime;
+
+  let gaugeLevel = 'Bajo';
+  let gaugeValue = '0%';
+  let gaugeColor = '#22c55e';
+  if (riskPct >= 75 || fraudCount > 0) {
+    gaugeLevel = 'Crítico';
+    gaugeValue = `${riskPct}%`;
+    gaugeColor = '#ef4444';
+  } else if (riskPct >= 45 || suspiciousCount > 0) {
+    gaugeLevel = 'Alto';
+    gaugeValue = `${riskPct}%`;
+    gaugeColor = '#fb923c';
+  } else if (riskPct >= 20) {
+    gaugeLevel = 'Medio';
+    gaugeValue = `${riskPct}%`;
+    gaugeColor = '#facc15';
+  } else {
+    gaugeLevel = 'Bajo';
+    gaugeValue = `${riskPct}%`;
+    gaugeColor = '#22c55e';
+  }
+
+  if (globalRiskLabelEl) {
+    globalRiskLabelEl.textContent = gaugeLevel;
+    globalRiskLabelEl.style.color = gaugeColor;
+  }
+  if (gaugeValueEl) gaugeValueEl.textContent = gaugeValue;
+  if (gaugeLevelEl) gaugeLevelEl.textContent = gaugeLevel;
+  if (gaugeRingEl) gaugeRingEl.style.background = `conic-gradient(${gaugeColor} 0deg 90deg, #facc15 90deg 180deg, #fb923c 180deg 270deg, #ef4444 270deg 360deg)`;
+
+  if (latestTx && alertPanel) {
+    const isCritical = latestTx.riskLevel === 'Crítico';
+    const isWarning = latestTx.riskLevel === 'Alto' || latestTx.riskLevel === 'Medio';
+    alertPanel.className = `analysis-alert ${isCritical ? 'analysis-alert--danger' : isWarning ? 'analysis-alert--warning' : 'analysis-alert--safe'}`;
+    if (alertTitleEl) alertTitleEl.textContent = latestTx.isSuspicious ? `Alerta Roja · ${latestTx.riskLevel}` : 'Sin alertas activas';
+    if (alertMessageEl) alertMessageEl.textContent = latestTx.isSuspicious ? latestTx.explanation : 'El sistema está monitorizando sin incidentes críticos.';
+    if (alertRulesEl) {
+      alertRulesEl.innerHTML = latestTx.isSuspicious
+        ? latestTx.rulesActivated.map((rule) => `<span>${rule}</span>`).join('')
+        : '<span>Monitoreo continuo</span>';
+    }
+  }
+
+  if (flowTextEl) {
+    flowTextEl.textContent = latestTx
+      ? `Moviendo ${latestTx.amountLabel} en ${latestTx.type.toLowerCase()} desde ${latestTx.country} vía ${latestTx.device}`
+      : 'Monitoreo activo de flujos de dinero en tiempo real.';
+  }
+  if (flowStatusEl) {
+    flowStatusEl.textContent = latestTx?.isSuspicious ? `Última operación: ${latestTx.riskLevel}` : 'Sin eventos críticos por el momento';
+  }
+
+  if (historyBodyEl) {
+    historyBodyEl.innerHTML = transactions.slice(0, 10).map((tx) => `
+      <tr>
+        <td>${tx.date} ${tx.time}</td>
+        <td>${tx.user}</td>
+        <td>${tx.type}</td>
+        <td>${tx.country}</td>
+        <td>${tx.device}</td>
+        <td><span style="color:${getRiskColor(tx.riskLevel)}; font-weight:700;">${tx.riskLevel}</span></td>
+        <td>${tx.status}</td>
+        <td>${tx.explanation}</td>
+      </tr>
+    `).join('');
+  }
+
+  renderAnalysisCharts(transactions);
+}
+
+function renderAnalysisCharts(transactions) {
+  if (!window.Chart) return;
+  const anomalyCtx = document.getElementById('anomalyChart');
+  const alertsCtx = document.getElementById('alertsChart');
+  const patternsCtx = document.getElementById('patternsChart');
+  const auditCtx = document.getElementById('auditChart');
+
+  if (!anomalyCtx || !alertsCtx || !patternsCtx || !auditCtx) return;
+
+  if (ANALYSIS_CHARTS.anomaly) ANALYSIS_CHARTS.anomaly.destroy();
+  if (ANALYSIS_CHARTS.alerts) ANALYSIS_CHARTS.alerts.destroy();
+  if (ANALYSIS_CHARTS.patterns) ANALYSIS_CHARTS.patterns.destroy();
+  if (ANALYSIS_CHARTS.audit) ANALYSIS_CHARTS.audit.destroy();
+
+  const normalCount = transactions.filter((tx) => !tx.isSuspicious).length;
+  const suspiciousCount = transactions.filter((tx) => tx.isSuspicious && tx.riskLevel !== 'Crítico').length;
+  const fraudCount = transactions.filter((tx) => tx.riskLevel === 'Crítico').length;
+
+  ANALYSIS_CHARTS.anomaly = new window.Chart(anomalyCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Normales', 'Sospechosas', 'Fraudulentas'],
+      datasets: [{
+        label: 'Transacciones',
+        data: [normalCount, suspiciousCount, fraudCount],
+        backgroundColor: ['#34d399', '#facc15', '#ef4444'],
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  const hourlyBuckets = Array.from({ length: 6 }, (_, index) => {
+    const hour = new Date();
+    hour.setHours(hour.getHours() - (5 - index));
+    return `${hour.getHours()}:00`;
+  });
+  const alertSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
+  const criticalSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => tx.riskLevel === 'Crítico' && new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
+  const resolvedSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => tx.riskLevel === 'Bajo' && new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
+  const pendingSeries = hourlyBuckets.map((_, index) => transactions.filter((tx) => tx.isSuspicious && new Date(tx.timestamp).getHours() === new Date().getHours() - (5 - index)).length);
+
+  ANALYSIS_CHARTS.alerts = new window.Chart(alertsCtx, {
+    type: 'line',
+    data: {
+      labels: hourlyBuckets,
+      datasets: [
+        { label: 'Alertas', data: alertSeries, borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.2)', tension: 0.3 },
+        { label: 'Críticas', data: criticalSeries, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.2)', tension: 0.3 },
+        { label: 'Resueltas', data: resolvedSeries, borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.18)', tension: 0.3 },
+        { label: 'Pendientes', data: pendingSeries, borderColor: '#facc15', backgroundColor: 'rgba(250,204,21,0.2)', tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e2e8f0' } } },
+      scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  const peakHours = transactions.reduce((acc, tx) => {
+    const hour = new Date(tx.timestamp).getHours();
+    acc[hour] = (acc[hour] || 0) + (tx.isSuspicious ? 1 : 0);
+    return acc;
+  }, {});
+  const countryCounts = transactions.reduce((acc, tx) => {
+    acc[tx.country] = (acc[tx.country] || 0) + (tx.isSuspicious ? 1 : 0);
+    return acc;
+  }, {});
+  const deviceCounts = transactions.reduce((acc, tx) => {
+    acc[tx.device] = (acc[tx.device] || 0) + (tx.isSuspicious ? 1 : 0);
+    return acc;
+  }, {});
+  const typeCounts = transactions.reduce((acc, tx) => {
+    acc[tx.type] = (acc[tx.type] || 0) + (tx.isSuspicious ? 1 : 0);
+    return acc;
+  }, {});
+
+  ANALYSIS_CHARTS.patterns = new window.Chart(patternsCtx, {
+    type: 'radar',
+    data: {
+      labels: ['Horarios', 'Países', 'Dispositivos', 'Tipos'],
+      datasets: [{
+        label: 'Incidencia',
+        data: [
+          Object.values(peakHours).reduce((sum, value) => sum + value, 0) || 1,
+          Object.values(countryCounts).reduce((sum, value) => sum + value, 0) || 1,
+          Object.values(deviceCounts).reduce((sum, value) => sum + value, 0) || 1,
+          Object.values(typeCounts).reduce((sum, value) => sum + value, 0) || 1
+        ],
+        borderColor: '#38bdf8',
+        backgroundColor: 'rgba(56,189,248,0.2)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { r: { angleLines: { color: 'rgba(255,255,255,0.16)' }, grid: { color: 'rgba(255,255,255,0.16)' }, pointLabels: { color: '#e2e8f0' }, suggestedMin: 0, suggestedMax: Math.max(4, transactions.length) } }
+    }
+  });
+
+  ANALYSIS_CHARTS.audit = new window.Chart(auditCtx, {
+    type: 'line',
+    data: {
+      labels: transactions.map((tx) => `${tx.date} ${tx.time}`),
+      datasets: [{
+        label: 'Riesgo',
+        data: transactions.map((tx) => ({ x: `${tx.date} ${tx.time}`, y: tx.isSuspicious ? (tx.riskLevel === 'Crítico' ? 90 : tx.riskLevel === 'Alto' ? 70 : 40) : 10 })),
+        borderColor: '#34d399',
+        backgroundColor: 'rgba(52,211,153,0.2)',
+        tension: 0.2,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e2e8f0' } } },
+      scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { ticks: { color: '#cbd5e1' }, grid: { display: false } } }
+    }
+  });
+}
+
 // ─── Setup Interactive Banking ───
 function setupInteractiveBanking(user) {
   const cardNumber = document.getElementById('cardNumber');
@@ -1433,6 +1798,8 @@ function setupInteractiveBanking(user) {
   const btnSimulatePurchase = document.getElementById('btnSimulatePurchase');
   const btnSimulateTransfer = document.getElementById('btnSimulateTransfer');
   const bankingTransactionsList = document.getElementById('bankingTransactionsList');
+  const btnSimulateWithdrawal = document.getElementById('btnSimulateWithdrawal');
+  const btnSimulatePayment = document.getElementById('btnSimulatePayment');
 
   let cardBlocked = false;
   let balance = parseFloat(localStorage.getItem('cardBalanceVal') || '5248.50');
@@ -1537,6 +1904,7 @@ function setupInteractiveBanking(user) {
 
   updateDeviceStatusBadge();
   renderTransactionsTable();
+  renderAnalysisDashboard();
 
   // ── Sincronización de estado de tarjeta con Configuración ──
   function updateCardStateFromStorage() {
@@ -1796,89 +2164,76 @@ function setupInteractiveBanking(user) {
     });
   }
 
+  function handleSimulation(type, amountVal, label, limit, successMessage, denyLabel) {
+    const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+
+    if (!isCardActive()) {
+      showToast('Transacción no disponible: la tarjeta no está activa', 'error');
+      addAuditLog('Transacción denegada: la tarjeta no está activa', 'val-danger');
+      saveTransaction(label, amountVal, 'Denegado');
+      return false;
+    }
+
+    if (!isDeviceTrusted) {
+      showToast('Dispositivo no confiable detectado. Revise su configuración.', 'warning');
+      addAuditLog('Dispositivo no confiable detectado en simulación.', 'val-warning');
+    }
+
+    if (limit && amountVal > limit) {
+      showToast(`Denegada: Excede límite (${formatCurrency(limit)})`, 'error');
+      addAuditLog(`${denyLabel} denegada: Excede límite.`, 'val-danger');
+      saveTransaction(label, amountVal, 'Denegado');
+      return false;
+    }
+
+    if (amountVal > balance) {
+      showToast('Denegada: Saldo insuficiente.', 'error');
+      addAuditLog(`${denyLabel} denegada: Saldo insuficiente.`, 'val-danger');
+      saveTransaction(label, amountVal, 'Denegado');
+      return false;
+    }
+
+    balance -= amountVal;
+    localStorage.setItem('cardBalanceVal', balance.toString());
+    updateBalanceAndSecurityUI();
+    saveTransaction(label, amountVal, 'Aprobado');
+    registerAnalysisTransaction(type, amountVal, 'Aprobada');
+    showToast(successMessage, 'success');
+    addAuditLog(`✓ ${successMessage}`, 'val-success');
+
+    if (window.registrarAccion && typeof window.registrarAccion === 'function') {
+      window.registrarAccion(type, 'exito', { user: user.email, monto: amountVal });
+    }
+    return true;
+  }
+
   // Simulated Purchases
   if (btnSimulatePurchase) {
-    btnSimulatePurchase.addEventListener('click', async () => {
+    btnSimulatePurchase.addEventListener('click', () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
-
-      if (!isCardActive()) {
-        showToast('Transacción no disponible: la tarjeta no está activa', 'error');
-        addAuditLog('Transacción denegada: la tarjeta no está activa', 'val-danger');
-        saveTransaction('Simulación Compra', amountVal, 'Denegado');
-        return;
-      }
-      if (!isDeviceTrusted) {
-          showToast('Dispositivo no confiable detectado. Revise su configuración.', 'warning');
-          addAuditLog('Dispositivo no confiable detectado en simulación.', 'val-warning');
-        }
-      if (amountVal > 2000.00) {
-        showToast('Denegada: Excede límite de compra ($2,000.00)', 'error');
-        addAuditLog('Compra denegada: Excede límite de compra.', 'val-danger');
-        saveTransaction('Simulación Compra', amountVal, 'Denegado');
-        return;
-      }
-      if (amountVal > balance) {
-        showToast('Denegada: Saldo insuficiente.', 'error');
-        addAuditLog('Compra denegada: Saldo insuficiente.', 'val-danger');
-        saveTransaction('Simulación Compra', amountVal, 'Denegado');
-        return;
-      }
-
-      // Approve purchase
-      balance -= amountVal;
-      localStorage.setItem('cardBalanceVal', balance.toString());
-      updateBalanceAndSecurityUI();
-      saveTransaction('Compra Online', amountVal, 'Aprobado');
-      showToast('Compra aprobada con éxito', 'success');
-      addAuditLog(`✓ Compra aprobada por $${amountVal.toFixed(2)}.`, 'val-success');
-
-      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-        window.registrarAccion('compra_simulada', 'exito', { user: user.email, monto: amountVal });
-      }
+      handleSimulation('Compra', amountVal, 'Simulación Compra', 2000, 'Compra aprobada con éxito', 'Compra');
     });
   }
 
   // Simulated Transfers
   if (btnSimulateTransfer) {
-    btnSimulateTransfer.addEventListener('click', async () => {
+    btnSimulateTransfer.addEventListener('click', () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      const isDeviceTrusted = localStorage.getItem('registeredDevice') === 'true';
+      handleSimulation('Transferencia', amountVal, 'Simulación Transferencia', 1500, 'Transferencia realizada con éxito', 'Transferencia');
+    });
+  }
 
-      if (!isCardActive()) {
-        showToast('Transacción no disponible: la tarjeta no está activa', 'error');
-        addAuditLog('Transacción denegada: la tarjeta no está activa', 'val-danger');
-        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-        return;
-      }
-      if (!isDeviceTrusted) {
-          showToast('Dispositivo no confiable detectado. Revise su configuración.', 'warning');
-          addAuditLog('Dispositivo no confiable detectado en simulación.', 'val-warning');
-        }
-      if (amountVal > 1500.00) {
-        showToast('Denegada: Excede límite de transferencia ($1,500.00)', 'error');
-        addAuditLog('Transferencia denegada: Excede límite.', 'val-danger');
-        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-        return;
-      }
-      if (amountVal > balance) {
-        showToast('Denegada: Saldo insuficiente.', 'error');
-        addAuditLog('Transferencia denegada: Saldo insuficiente.', 'val-danger');
-        saveTransaction('Simulación Transferencia', amountVal, 'Denegado');
-        return;
-      }
+  if (btnSimulateWithdrawal) {
+    btnSimulateWithdrawal.addEventListener('click', () => {
+      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
+      handleSimulation('Retiro', amountVal, 'Simulación Retiro', 1200, 'Retiro autorizado con éxito', 'Retiro');
+    });
+  }
 
-      // Approve transfer
-      balance -= amountVal;
-      localStorage.setItem('cardBalanceVal', balance.toString());
-      updateBalanceAndSecurityUI();
-      saveTransaction('Transferencia Enviada', amountVal, 'Aprobado');
-      showToast('Transferencia realizada con éxito', 'success');
-      addAuditLog(`✓ Transferencia realizada por $${amountVal.toFixed(2)}.`, 'val-success');
-
-      if (window.registrarAccion && typeof window.registrarAccion === 'function') {
-        window.registrarAccion('transferencia_simulada', 'exito', { user: user.email, monto: amountVal });
-      }
+  if (btnSimulatePayment) {
+    btnSimulatePayment.addEventListener('click', () => {
+      const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
+      handleSimulation('Pago', amountVal, 'Simulación Pago', 1100, 'Pago procesado con éxito', 'Pago');
     });
   }
 
