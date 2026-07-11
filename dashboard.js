@@ -557,27 +557,27 @@ function initializeDashboard(user, expiresAt) {
 // ─── Shared Card Helpers ───
 const CARDS_KEY = 'bankSecureCards';
 const DEFAULT_CARD = {
-  number: '4111 1111 1111 1111',
-  expiry: '11/28',
-  cvv: '123',
+  number: '',
+  expiry: '',
+  cvv: '',
   status: 'Activa',
-  isDefault: true,
-  availableAmount: 5248.5
+  availableAmount: 0,
+  selected: false
 };
 
 function getCards() {
   try {
     const raw = localStorage.getItem(CARDS_KEY);
     if (!raw) {
-      return [{ ...DEFAULT_CARD }];
+      return [];
     }
     const list = JSON.parse(raw);
     if (!Array.isArray(list) || !list.length) {
-      return [{ ...DEFAULT_CARD }];
+      return [];
     }
     const normalized = list.map((card) => ({
       ...card,
-      availableAmount: card.availableAmount != null ? Number(card.availableAmount) : (card.isDefault ? DEFAULT_CARD.availableAmount : 0)
+      availableAmount: card.availableAmount != null ? Number(card.availableAmount) : 0
     }));
     if (normalized[0] && normalized[0].status === 'Pendiente') {
       normalized[0].status = 'Activa';
@@ -585,7 +585,7 @@ function getCards() {
     }
     return normalized;
   } catch {
-    return [{ ...DEFAULT_CARD }];
+    return [];
   }
 }
 
@@ -933,7 +933,7 @@ function setupSettingsHandlers(user, expiresAt) {
         const statusMap = { Activa: 'active', Bloqueada: 'blocked', Pendiente: 'pending' };
         const statusClass = statusMap[c.status] || 'pending';
         const isSelected = i === editingIdx ? ' selected' : '';
-        const defBadge = c.isDefault ? ' ⭐' : '';
+        const defBadge = '';
 
         return `
           <div class="card-list-item${isSelected}" data-idx="${i}">
@@ -1042,7 +1042,6 @@ function setupSettingsHandlers(user, expiresAt) {
 
         if (editingIdx >= 0 && editingIdx < cards.length) {
           // Preserve the isDefault flag
-          cardData.isDefault = cards[editingIdx].isDefault || false;
           cards[editingIdx] = cardData;
         } else {
           // Not editing an existing card — save as first card
@@ -1079,7 +1078,6 @@ function setupSettingsHandlers(user, expiresAt) {
           expiry: cfgExp.value.trim(),
           cvv: cfgCvv.value.trim(),
           status: cfgStatus.value,
-          isDefault: false,
           availableAmount: generateInitialAvailableAmount()
         };
 

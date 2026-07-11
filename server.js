@@ -85,6 +85,59 @@ const SYSTEM_LOGS = []; // Array<{ id, usuario, accion, fecha, resultado, detall
 const CHAT_LOGS   = []; // Array<{ id, usuario, consulta, respuesta, modulo, fecha, resultado }>
 const MAX_LOGS    = 500; // Límite de registros en memoria
 
+const USER_CARDS = new Map();
+let cardIdCounter = 1;
+
+function getUserCards(userId) {
+  if (!USER_CARDS.has(userId)) {
+    USER_CARDS.set(userId, []);
+  }
+  return USER_CARDS.get(userId);
+}
+
+function generateInitialAvailableAmount() {
+  return Math.floor(Math.random() * (10000000 - 20000 + 1)) + 20000;
+}
+
+function sanitizeCard(card) {
+  return {
+    id: card.id,
+    number: card.number,
+    expiry: card.expiry,
+    cvv: card.cvv,
+    status: card.status,
+    availableAmount: Number(card.availableAmount || 0),
+    selected: Boolean(card.selected),
+    createdAt: card.createdAt,
+  };
+}
+
+function validateCardPayload(body) {
+  if (!body) return { valid: false, message: 'Datos de tarjeta requeridos.' };
+  const number = String(body.number || '').trim();
+  const expiry = String(body.expiry || '').trim();
+  const cvv = String(body.cvv || '').trim();
+  const status = String(body.status || '').trim();
+
+  if (!number || !expiry || !cvv || !status) {
+    return { valid: false, message: 'Todos los campos de la tarjeta son obligatorios.' };
+  }
+
+  if (!/^\d{4}(?:\s?\d{4}){3}$/.test(number)) {
+    return { valid: false, message: 'El número de tarjeta debe tener formato de 16 dígitos.' };
+  }
+
+  if (!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(expiry)) {
+    return { valid: false, message: 'La fecha de vencimiento es inválida.' };
+  }
+
+  if (!/^\d{3,4}$/.test(cvv)) {
+    return { valid: false, message: 'El CVV es inválido.' };
+  }
+
+  return { valid: true };
+}
+
 /** Inserta un registro de acción del sistema */
 function crearLog(usuario, accion, resultado, detalles = {}) {
   // Sanitizar: nunca guardar campos sensibles
@@ -515,6 +568,99 @@ app.post('/api/chat', authenticateToken, (req, res) => {
   res.json({ authenticated: true, user: req.user.name });
 });
 
+// ─── Cards Backend Endpoints ─────────────────────────────────────────────
+app.get('/api/cards', authenticateToken, (req, res) => {
+  const cards = getUserCards(req.user.id).map(sanitizeCard);
+  res.json({ success: true, cards });
+});
+
+app.post('/api/cards', authenticateToken, (req, res) => {
+  const validation = validateCardPayload(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+
+  const cards = getUserCards(req.user.id);
+  const normalizedCard = {
+    id: cardIdCounter++,
+    number: String(req.body.number).trim(),
+    expiry: String(req.body.expiry).trim(),
+    cvv: String(req.body.cvv).trim(),
+    status: String(req.body.status).trim(),
+    availableAmount: generateInitialAvailableAmount(),
+    selected: false,
+    createdAt: new Date().toISOString(),
+  };
+
+  cards.push(normalizedCard);
+  crearLog(req.user.email, 'tarjeta_agregada', 'exito', { last4: normalizedCard.number.replace(/\D/g, '').slice(-4), status: normalizedCard.status });
+  res.status(201).json({ success: true, card: sanitizeCard(normalizedCard) });
+});
+
+app.put('/api/cards/:id', authenticateToken, (req, res) => {
+  const validation = validateCardPayload(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+
+  const cards = getUserCards(req.user.id);
+  const card = cards.find((item) => item.id === Number(req.params.id));
+  if (!card) {
+    return res.status(404).json({ success: false, message: 'Tarjeta no encontrada.' });
+  }
+
+  card.number = String(req.body.number).trim();
+  card.expiry = String(req.body.expiry).trim();
+  card.cvv = String(req.body.cvv).trim();
+  card.status = String(req.body.status).trim();
+  if (req.body.selected === true) {
+    cards.forEach((item) => {
+      item.selected = item.id === card.id;
+    });
+  }
+  crearLog(req.user.email, 'tarjeta_actualizada', 'exito', { last4: card.number.replace(/\D/g, '').slice(-4), status: card.status });
+  res.json({ success: true, card: sanitizeCard(card) });
+});
+
+app.post('/api/cards/:id/transactions', authenticateToken, (req, res) => {
+  const cards = getUserCards(req.user.id);
+  const card = cards.find((item) => item.id === Number(req.params.id));
+  const amount = Number(req.body?.amount);
+  const description = String(req.body?.description || 'Transacción');
+
+  if (!card) {
+    return res.status(404).json({ success: false, message: 'Tarjeta no encontrada.' });
+  }
+
+  if (!card.selected || card.status !== 'Activa') {
+    return res.status(400).json({ success: false, message: 'No hay una tarjeta activa y validada para realizar la transacción.' });
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ success: false, message: 'El monto debe ser mayor a cero.' });
+  }
+
+  if (card.availableAmount < amount) {
+    return res.status(400).json({ success: false, message: 'Saldo insuficiente.' });
+  }
+
+  card.availableAmount = Number((card.availableAmount - amount).toFixed(2));
+  crearLog(req.user.email, 'transaccion_aprobada', 'exito', { cardId: card.id, amount, description });
+  res.status(201).json({ success: true, card: sanitizeCard(card), transaction: { amount, description } });
+});
+
+app.post('/api/cards/:id/select', authenticateToken, (req, res) => {
+  const cards = getUserCards(req.user.id);
+  const card = cards.find((item) => item.id === Number(req.params.id));
+  if (!card) {
+    return res.status(404).json({ success: false, message: 'Tarjeta no encontrada.' });
+  }
+  cards.forEach((item) => {
+    item.selected = item.id === card.id;
+  });
+  res.json({ success: true, card: sanitizeCard(card) });
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ─── Módulo Historial — Endpoints ───────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
@@ -739,7 +885,20 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(port, () => {
-  console.log(`Servidor listo en http://localhost:${port}`);
-  console.log(`JWT Secret generado (${JWT_SECRET.substring(0, 8)}...)`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Servidor listo en http://localhost:${port}`);
+    console.log(`JWT Secret generado (${JWT_SECRET.substring(0, 8)}...)`);
+  });
+}
+
+function resetTestState() {
+  USER_CARDS.clear();
+  cardIdCounter = 1;
+  SYSTEM_LOGS.length = 0;
+  CHAT_LOGS.length = 0;
+  logIdCounter = 1;
+  chatIdCounter = 1;
+}
+
+module.exports = { app, __resetTestState: resetTestState };
