@@ -1880,6 +1880,11 @@ function setupInteractiveBanking(user) {
   const btnSimulateWithdrawal = document.getElementById('btnSimulateWithdrawal');
   const btnSimulatePayment = document.getElementById('btnSimulatePayment');
 
+  const PURCHASE_LIMIT = 5000;
+  const TRANSFER_LIMIT = 3000;
+  const WITHDRAWAL_LIMIT = 4000;
+  const PAYMENT_LIMIT = 3500;
+
   let cardBlocked = false;
   let balance = getActiveCardBalance();
 
@@ -2291,7 +2296,7 @@ function setupInteractiveBanking(user) {
   if (btnSimulatePurchase) {
     btnSimulatePurchase.addEventListener('click', () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Compra', amountVal, 'Simulación Compra', 2000, 'Compra aprobada con éxito', 'Compra');
+      handleSimulation('Compra', amountVal, 'Simulación Compra', PURCHASE_LIMIT, 'Compra aprobada con éxito', 'Compra');
     });
   }
 
@@ -2299,21 +2304,21 @@ function setupInteractiveBanking(user) {
   if (btnSimulateTransfer) {
     btnSimulateTransfer.addEventListener('click', () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Transferencia', amountVal, 'Simulación Transferencia', 1500, 'Transferencia realizada con éxito', 'Transferencia');
+      handleSimulation('Transferencia', amountVal, 'Simulación Transferencia', TRANSFER_LIMIT, 'Transferencia realizada con éxito', 'Transferencia');
     });
   }
 
   if (btnSimulateWithdrawal) {
     btnSimulateWithdrawal.addEventListener('click', () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Retiro', amountVal, 'Simulación Retiro', 1200, 'Retiro autorizado con éxito', 'Retiro');
+      handleSimulation('Retiro', amountVal, 'Simulación Retiro', WITHDRAWAL_LIMIT, 'Retiro autorizado con éxito', 'Retiro');
     });
   }
 
   if (btnSimulatePayment) {
     btnSimulatePayment.addEventListener('click', () => {
       const amountVal = parseFloat(transactionAmountInput?.value || '150.00');
-      handleSimulation('Pago', amountVal, 'Simulación Pago', 1100, 'Pago procesado con éxito', 'Pago');
+      handleSimulation('Pago', amountVal, 'Simulación Pago', PAYMENT_LIMIT, 'Pago procesado con éxito', 'Pago');
     });
   }
 
