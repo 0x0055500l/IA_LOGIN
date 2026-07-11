@@ -125,42 +125,147 @@
         </section>
 
         <section id="seccion-analisis" class="w-full min-h-screen p-6 text-white block panel analysis-section" style="z-index: 9999; background: #0f172a;">
-          <div class="mb-8">
-            <p class="text-slate-400 uppercase tracking-[0.24em] mb-2">Motor de Inferencia</p>
-            <h2 class="text-4xl font-bold text-white">Análisis Analítico del Motor de Inferencia</h2>
-          </div>
-
-          <div class="grid gap-6 mb-8 lg:grid-cols-3">
-            <div class="rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-lg">
-              <p class="text-emerald-400 text-lg font-semibold mb-4">Métricas del Motor</p>
-              <div class="h-32 rounded-2xl bg-blue-600"></div>
+          <div class="analysis-hero">
+            <div>
+              <p class="analysis-eyebrow">Centro inteligente de monitoreo</p>
+              <h2>Panel de análisis antifraude en tiempo real</h2>
+              <p>El motor registra cada operación, detecta patrones anómalos, activa alertas inmediatas y ofrece trazabilidad completa desde un único panel.</p>
             </div>
-            <div class="rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-lg">
-              <p class="text-emerald-400 text-lg font-semibold mb-4">Métricas del Motor</p>
-              <div class="h-32 rounded-2xl bg-emerald-600"></div>
-            </div>
-            <div class="rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-lg">
-              <p class="text-emerald-400 text-lg font-semibold mb-4">Métricas del Motor</p>
-              <div class="h-32 rounded-2xl bg-purple-600"></div>
+            <div class="analysis-badge">
+              <span id="analysisGlobalRiskLabel">Bajo</span>
+              <small>Nivel general de riesgo</small>
             </div>
           </div>
 
-          <div class="grid gap-6 lg:grid-cols-2">
-            <div class="rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-lg">
-              <p class="text-emerald-400 text-lg font-semibold mb-4">Intentos de Fraude Detectados por Hora</p>
-              <div class="space-y-4">
-                <div class="h-32 rounded-3xl bg-blue-600"></div>
-                <div class="h-32 rounded-3xl bg-sky-600"></div>
-                <div class="h-32 rounded-3xl bg-emerald-600"></div>
+          <div id="analysisAlertPanel" class="analysis-alert analysis-alert--safe" role="status" aria-live="polite">
+            <div class="analysis-alert__content">
+              <div class="analysis-alert__icon">🛡️</div>
+              <div>
+                <p class="analysis-alert__eyebrow">Alerta Roja</p>
+                <h3 id="analysisAlertTitle">Sin alertas activas</h3>
+                <p id="analysisAlertMessage">El sistema está monitorizando sin incidentes críticos.</p>
+                <div id="analysisAlertRules" class="analysis-alert__rules"></div>
               </div>
             </div>
-            <div class="rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-lg">
-              <p class="text-emerald-400 text-lg font-semibold mb-4">Tipos de Alertas</p>
-              <div class="space-y-4">
-                <div class="h-32 rounded-3xl bg-purple-600"></div>
-                <div class="h-32 rounded-3xl bg-fuchsia-600"></div>
-                <div class="h-32 rounded-3xl bg-teal-600"></div>
+            <div class="analysis-alert__actions">
+              <button type="button" id="analysisBtnBlock" class="banking-btn btn-danger">Bloquear tarjeta</button>
+              <button type="button" id="analysisBtnCancel" class="banking-btn btn-warning">Cancelar transacción</button>
+              <button type="button" id="analysisBtnFace" class="banking-btn btn-primary">Validar Face ID</button>
+            </div>
+          </div>
+
+          <div class="money-flow-card">
+            <div class="money-flow-card__visual">
+              <div class="money-flow-node">Cuenta</div>
+              <div class="money-flow-line"></div>
+              <div class="money-flow-node money-flow-node--accent">Destino</div>
+            </div>
+            <div class="money-flow-card__meta">
+              <p id="analysisFlowText">Monitoreo activo de flujos de dinero en tiempo real.</p>
+              <span id="analysisFlowStatus">Sin eventos críticos por el momento</span>
+            </div>
+          </div>
+
+          <div class="analysis-metrics-grid">
+            <article class="metric-card">
+              <span>Total de transacciones</span>
+              <strong id="analysisTotalTx">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Transacciones seguras</span>
+              <strong id="analysisSecureTx">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Sospechosas</span>
+              <strong id="analysisSuspiciousTx">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Fraudes detectados</span>
+              <strong id="analysisFraudTx">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Porcentaje de riesgo</span>
+              <strong id="analysisRiskPct">0%</strong>
+            </article>
+            <article class="metric-card">
+              <span>Dinero protegido</span>
+              <strong id="analysisProtectedMoney">$0.00</strong>
+            </article>
+            <article class="metric-card">
+              <span>Alertas activas</span>
+              <strong id="analysisActiveAlerts">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Última actividad</span>
+              <strong id="analysisLastActivity">—</strong>
+            </article>
+          </div>
+
+          <div class="analysis-grid">
+            <div class="chart-card chart-card--wide">
+              <div class="chart-card__header">
+                <h4>Detección de anomalías</h4>
+                <span>Normales · Sospechosas · Fraudes</span>
               </div>
+              <canvas id="anomalyChart"></canvas>
+            </div>
+            <div class="chart-card chart-card--side">
+              <div class="risk-gauge" id="riskGauge">
+                <div class="risk-gauge__ring">
+                  <div class="risk-gauge__center">
+                    <strong id="analysisGaugeValue">0%</strong>
+                    <span id="analysisGaugeLevel">Bajo</span>
+                  </div>
+                </div>
+              </div>
+              <div class="risk-gauge__legend">
+                <div><span class="dot dot-green"></span> Bajo</div>
+                <div><span class="dot dot-yellow"></span> Medio</div>
+                <div><span class="dot dot-orange"></span> Alto</div>
+                <div><span class="dot dot-red"></span> Crítico</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analysis-grid analysis-grid--two">
+            <div class="chart-card">
+              <div class="chart-card__header">
+                <h4>Alertas en tiempo real</h4>
+                <span>Críticas · Resueltas · Pendientes</span>
+              </div>
+              <canvas id="alertsChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card__header">
+                <h4>Análisis de patrones</h4>
+                <span>Horarios · Países · Dispositivos · Tipos</span>
+              </div>
+              <canvas id="patternsChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card audit-card">
+            <div class="chart-card__header">
+              <h4>Auditoría y trazabilidad</h4>
+              <span>Timeline de cada operación registrada</span>
+            </div>
+            <canvas id="auditChart"></canvas>
+            <div class="analysis-history-panel">
+              <table class="analysis-history-table">
+                <thead>
+                  <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Usuario</th>
+                    <th>Operación</th>
+                    <th>País</th>
+                    <th>Dispositivo</th>
+                    <th>Riesgo</th>
+                    <th>Estado</th>
+                    <th>Resultado</th>
+                  </tr>
+                </thead>
+                <tbody id="analysisHistoryTableBody"></tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -625,6 +730,8 @@
 
   <script src="reglas.js"></script>
   <script src="motorInferencia.js"></script>
+  <script src="fraudEngine.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="dashboard.js"></script>
   <script src="historial.js"></script>
   <script src="chatbot.js"></script>
