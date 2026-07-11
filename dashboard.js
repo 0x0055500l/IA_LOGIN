@@ -1501,7 +1501,8 @@ const ANALYSIS_CHARTS = {};
 
 function getAnalysisTransactions() {
   try {
-    return JSON.parse(localStorage.getItem(ANALYSIS_STORAGE_KEY) || '[]');
+    const storedValue = JSON.parse(localStorage.getItem(ANALYSIS_STORAGE_KEY) || '[]');
+    return window.cardUtils?.normalizeAnalyticsTransactions?.(storedValue) || [];
   } catch (error) {
     console.warn('No se pudieron leer las transacciones de análisis:', error);
     return [];
@@ -1744,14 +1745,24 @@ function renderAnalysisDashboard() {
 }
 
 function renderAnalysisCharts(transactions, bankingTransactions = []) {
-  if (!window.Chart) return;
   const anomalyCtx = document.getElementById('anomalyChart');
   const alertsCtx = document.getElementById('alertsChart');
   const patternsCtx = document.getElementById('patternsChart');
   const auditCtx = document.getElementById('auditChart');
-  const transactionStatusCtx = document.getElementById('transactionStatusChart');
+  const transactionStatusCtx = document.getElementById('graficoTransacciones') || document.getElementById('transactionStatusChart');
+  const transactionStatusContainer = transactionStatusCtx?.parentElement;
 
   if (!anomalyCtx || !alertsCtx || !patternsCtx || !auditCtx || !transactionStatusCtx) return;
+
+  const showChartEmptyState = (container, message = 'Sin datos disponibles') => {
+    if (!container) return;
+    const existingState = container.querySelector('.chart-empty-state');
+    if (existingState) existingState.remove();
+    const emptyState = document.createElement('div');
+    emptyState.className = 'chart-empty-state';
+    emptyState.textContent = message;
+    container.appendChild(emptyState);
+  };
 
   const ensureCanvasVisibility = (canvas) => {
     if (!canvas) return;
@@ -1770,6 +1781,32 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
   ensureCanvasVisibility(patternsCtx);
   ensureCanvasVisibility(auditCtx);
   ensureCanvasVisibility(transactionStatusCtx);
+
+  const hasRenderableTransactions = Array.isArray(transactions) && transactions.some((tx) => tx && typeof tx === 'object');
+  if (!window.Chart) {
+    if (transactionStatusContainer) {
+      transactionStatusContainer.querySelector('.chart-empty-state')?.remove();
+      showChartEmptyState(transactionStatusContainer);
+    }
+    window.setTimeout(() => {
+      if (window.Chart) {
+        renderAnalysisCharts(transactions, bankingTransactions);
+      }
+    }, 250);
+    return;
+  }
+
+  if (!hasRenderableTransactions) {
+    if (transactionStatusContainer) {
+      transactionStatusContainer.querySelector('.chart-empty-state')?.remove();
+      showChartEmptyState(transactionStatusContainer);
+    }
+    return;
+  }
+
+  if (transactionStatusContainer) {
+    transactionStatusContainer.querySelector('.chart-empty-state')?.remove();
+  }
 
   if (ANALYSIS_CHARTS.anomaly) ANALYSIS_CHARTS.anomaly.destroy();
   if (ANALYSIS_CHARTS.alerts) ANALYSIS_CHARTS.alerts.destroy();
@@ -2502,6 +2539,7 @@ function toggleAnalysisSection(show) {
       if (node !== analysisSection) node.classList.add('hidden');
     });
     analysisSection.classList.remove('hidden');
+    window.requestAnimationFrame(() => renderAnalysisDashboard());
   } else {
     viewNodes.forEach((node) => {
       if (node !== analysisSection) node.classList.remove('hidden');
@@ -2529,5 +2567,9 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleAnalysisSection(false);
       });
     }
+  });
+
+  window.addEventListener('load', () => {
+    renderAnalysisDashboard();
   });
 });

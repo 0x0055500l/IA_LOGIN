@@ -43,6 +43,34 @@
       .map(([key]) => key);
   }
 
+  function normalizeAnalyticsTransactions(payload) {
+    if (!Array.isArray(payload)) return [];
+
+    return payload
+      .filter((entry) => entry && typeof entry === 'object')
+      .map((entry) => ({
+        ...entry,
+        timestamp: typeof entry.timestamp === 'string' ? entry.timestamp : '',
+        date: typeof entry.date === 'string' ? entry.date : '',
+        time: typeof entry.time === 'string' ? entry.time : '',
+        amount: Number.isFinite(Number(entry.amount)) ? Number(entry.amount) : 0,
+        amountValue: Number.isFinite(Number(entry.amountValue ?? entry.amount)) ? Number(entry.amountValue ?? entry.amount) : 0,
+        amountLabel: typeof entry.amountLabel === 'string' ? entry.amountLabel : '',
+        type: typeof entry.type === 'string' && entry.type.trim() ? entry.type : 'Transacción',
+        country: typeof entry.country === 'string' && entry.country.trim() ? entry.country : 'HN',
+        city: typeof entry.city === 'string' ? entry.city : '',
+        device: typeof entry.device === 'string' && entry.device.trim() ? entry.device : 'Desconocido',
+        status: typeof entry.status === 'string' && entry.status.trim() ? entry.status : 'Procesada',
+        user: typeof entry.user === 'string' && entry.user.trim() ? entry.user : 'Usuario',
+        riskLevel: ['Bajo', 'Medio', 'Alto', 'Crítico'].includes(entry.riskLevel) ? entry.riskLevel : 'Bajo',
+        isSuspicious: Boolean(entry.isSuspicious),
+        score: Number.isFinite(Number(entry.score)) ? Number(entry.score) : 0,
+        rulesActivated: Array.isArray(entry.rulesActivated) ? entry.rulesActivated : [],
+        explanation: typeof entry.explanation === 'string' ? entry.explanation : 'Sin explicación',
+        recommendations: Array.isArray(entry.recommendations) ? entry.recommendations : []
+      }));
+  }
+
   function isCardFormComplete(card) {
     return getMissingCardFields(card).length === 0;
   }
@@ -113,6 +141,7 @@
     isExpiryFuture,
     isCvvValid,
     getMissingCardFields,
+    normalizeAnalyticsTransactions,
     isCardFormComplete,
     generateInitialAvailableAmount,
     getActiveCardBalance,
