@@ -1500,7 +1500,10 @@ function persistAnalysisTransactions(transactions) {
 }
 
 function formatCurrency(value) {
-  return `$${Number(value || 0).toFixed(2)}`;
+  return `$${Number(value || 0).toLocaleString('es-HN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function getRiskColor(level) {
