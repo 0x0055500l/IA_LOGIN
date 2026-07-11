@@ -980,6 +980,14 @@ body::before {
 
 .transaction-analysis-chart {
   min-height: 260px;
+  width: 100%;
+  display: block;
+}
+
+.transaction-analysis-chart canvas {
+  display: block;
+  width: 100% !important;
+  height: 260px !important;
 }
 
 .audit-card {

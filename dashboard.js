@@ -1753,6 +1753,24 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
 
   if (!anomalyCtx || !alertsCtx || !patternsCtx || !auditCtx || !transactionStatusCtx) return;
 
+  const ensureCanvasVisibility = (canvas) => {
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (parent) {
+      parent.style.display = 'block';
+      parent.style.minHeight = '260px';
+    }
+    canvas.style.display = 'block';
+    canvas.style.width = '100%';
+    canvas.style.height = '260px';
+  };
+
+  ensureCanvasVisibility(anomalyCtx);
+  ensureCanvasVisibility(alertsCtx);
+  ensureCanvasVisibility(patternsCtx);
+  ensureCanvasVisibility(auditCtx);
+  ensureCanvasVisibility(transactionStatusCtx);
+
   if (ANALYSIS_CHARTS.anomaly) ANALYSIS_CHARTS.anomaly.destroy();
   if (ANALYSIS_CHARTS.alerts) ANALYSIS_CHARTS.alerts.destroy();
   if (ANALYSIS_CHARTS.patterns) ANALYSIS_CHARTS.patterns.destroy();
@@ -1903,6 +1921,9 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
 
 // ─── Setup Interactive Banking ───
 function setupInteractiveBanking(user) {
+  if (document.getElementById('analysisAlertPanel')) {
+    renderAnalysisDashboard();
+  }
   const cardNumber = document.getElementById('cardNumber');
   const cardExpiry = document.getElementById('cardExpiry');
   const cardCvv = document.getElementById('cardCvv');
