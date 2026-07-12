@@ -2368,32 +2368,52 @@ function setupInteractiveBanking(user) {
       return;
     }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = videoWebcam.videoWidth || 640;
-    canvas.height = videoWebcam.videoHeight || 480;
-    const context = canvas.getContext('2d');
-    context.drawImage(videoWebcam, 0, 0, canvas.width, canvas.height);
-    const imageData = canvas.toDataURL('image/png');
+    const actualizarAuditoria = (texto) => {
+      if (bankingAuditList) {
+        bankingAuditList.innerHTML = `
+          <li class="audit-item">${texto}</li>
+        `;
+        return;
+      }
+      const elementos = document.querySelectorAll('p, div, span');
+      elementos.forEach(el => {
+        if (el.textContent.includes('Esperando validación') || el.textContent.includes('Validación Biométrica') || el.textContent.includes('Analizando')) {
+          el.textContent = texto;
+        }
+      });
+    };
 
-    addAuditLog('Rostro capturado correctamente. Iniciando verificación facial...', 'val-success');
-    addAuditLog('[SISTEMA EXPERTO] Evaluando regla: verificacion_dispositivo_biometrico', 'val-success');
-    addAuditLog('[ÉXITO] Rostro coincide con el titular. Acceso autorizado.', 'val-success');
+    console.log('Iniciando captura de rostro...');
+    actualizarAuditoria('🤖 [API BIOMÉTRICA]: Capturando fotograma del rostro...');
 
-    if (btnValidateAccess) {
-      btnValidateAccess.textContent = 'Acceso Verificado';
-      btnValidateAccess.classList.remove('btn-primary');
-      btnValidateAccess.classList.add('btn-success');
-      btnValidateAccess.disabled = true;
-    }
+    setTimeout(() => {
+      console.log('Simulación biométrica: Enmarcando rostro...');
+      actualizarAuditoria('🔍 [API BIOMÉTRICA]: Enmarcando rostro... Detectando puntos clave faciales...');
+    }, 1200);
 
-    updateCardAuthenticationState(
-      'Completada',
-      '✓ Validación biométrica aprobada. Estado de la tarjeta actualizado a Completada.',
-      'Validación biométrica exitosa. La tarjeta queda operativa.',
-      'success'
-    );
-    saveTransaction('Validación Biométrica', null, 'Aprobado');
-    console.log('Face capture data:', imageData);
+    setTimeout(() => {
+      console.log('Simulación biométrica: Rostro aprobado.');
+      actualizarAuditoria('✅ [AUDITORÍA]: Rostro validado con éxito. Acceso biométrico AUTORIZADO.');
+      if (btnValidateAccess) {
+        btnValidateAccess.textContent = 'Acceso Verificado';
+        btnValidateAccess.classList.remove('btn-primary');
+        btnValidateAccess.classList.add('btn-success');
+        btnValidateAccess.disabled = true;
+      }
+      updateCardAuthenticationState(
+        'Completada',
+        '✓ Validación biométrica aprobada. Estado de la tarjeta actualizado a Completada.',
+        'Validación biométrica exitosa. La tarjeta queda operativa.',
+        'success'
+      );
+      saveTransaction('Validación Biométrica', null, 'Aprobado');
+      if (bankingAuditList) {
+        const firstItem = bankingAuditList.querySelector('.audit-item');
+        if (firstItem && firstItem.textContent.includes('Esperando validación')) {
+          firstItem.textContent = 'Validación Biométrica: Rostro Autorizado Exitosamente';
+        }
+      }
+    }, 2800);
   };
 
   if (captureFaceBtn) {
