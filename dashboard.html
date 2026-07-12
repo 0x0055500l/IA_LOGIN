@@ -761,11 +761,19 @@
       </div>
     </div>
 
-    <div class="chat-input-area">
-      <input type="text" id="chatInput" placeholder="Pregunta sobre reglas, riesgo, seguridad…" autocomplete="off" />
-      <button type="button" id="chatSendBtn" class="chat-send-btn" aria-label="Enviar mensaje">
-        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-      </button>
+    <div class="chat-input-wrapper">
+      <div id="slashCommandMenu" class="slash-command-menu hidden">
+        <!-- Opciones de comandos se inyectarán aquí -->
+      </div>
+      <div class="chat-input-area">
+        <button type="button" id="slashCommandBtn" class="chat-slash-btn" aria-label="Comandos rápidos" title="Ver comandos (/)">
+          /
+        </button>
+        <input type="text" id="chatInput" placeholder="Escribe / para ver comandos o haz una pregunta..." autocomplete="off" />
+        <button type="button" id="chatSendBtn" class="chat-send-btn" aria-label="Enviar mensaje">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+        </button>
+      </div>
     </div>
   </div>
 

@@ -10,9 +10,12 @@
   const conversationHistory = [];
   let isTyping = false;
   let chatOpen = false;
+  let selectedSlashIndex = -1;
+  let filteredSlashCommands = [];
 
   // ─── DOM References ───
   let chatPanel, chatMessages, chatInput, chatSendBtn, chatToggleBtn, chatFab, chatClose, typingIndicator;
+  let slashCommandMenu, slashCommandBtn;
 
   // ─── NLU: Intent Detection with Bilingual Patterns ───
   const INTENTS = [
@@ -28,7 +31,7 @@
     },
     {
       id: 'list_rules',
-      patterns: [/todas?\s*las?\s*reglas/i, /all\s*(the\s+)?rules/i, /listar?\s*reglas/i, /list\s*rules/i, /cu[aá]ntas?\s*reglas/i, /how\s*many\s*rules/i, /qu[eé]\s*reglas\s*(hay|tiene|existen)/i, /what\s*rules/i, /base\s*de\s*conocimiento/i, /knowledge\s*base/i],
+      patterns: [/^\/reglas$/i, /todas?\s*las?\s*reglas/i, /all\s*(the\s+)?rules/i, /listar?\s*reglas/i, /list\s*rules/i, /cu[aá]ntas?\s*reglas/i, /how\s*many\s*rules/i, /qu[eé]\s*reglas\s*(hay|tiene|existen)/i, /what\s*rules/i, /base\s*de\s*conocimiento/i, /knowledge\s*base/i],
       handler: handleListRules,
     },
     {
@@ -38,42 +41,42 @@
     },
     {
       id: 'risk_level',
-      patterns: [/nivel\s*de\s*riesgo/i, /risk\s*level/i, /riesgo\s*(actual|ahora)/i, /current\s*risk/i, /cu[aá]l\s*(es\s+)?(el\s+)?riesgo/i, /what\s*is\s*the\s*risk/i, /estado\s*del\s*riesgo/i],
+      patterns: [/^\/riesgo$/i, /nivel\s*de\s*riesgo/i, /risk\s*level/i, /riesgo\s*(actual|ahora)/i, /current\s*risk/i, /cu[aá]l\s*(es\s+)?(el\s+)?riesgo/i, /what\s*is\s*the\s*risk/i, /estado\s*del\s*riesgo/i],
       handler: handleRiskLevel,
     },
     {
       id: 'security_tips',
-      patterns: [/consejos?\s*(de\s+)?seguridad/i, /security\s*tips/i, /recomendaci[oó]n/i, /recommendation/i, /c[oó]mo\s*(me\s+)?(protej|proteg)/i, /how\s*to\s*protect/i, /tips/i, /seguridad/i, /security/i, /proteger\s*(mi\s+)?cuenta/i, /protect\s*my\s*account/i],
+      patterns: [/^\/consejos$/i, /consejos?\s*(de\s+)?seguridad/i, /security\s*tips/i, /recomendaci[oó]n/i, /recommendation/i, /c[oó]mo\s*(me\s+)?(protej|proteg)/i, /how\s*to\s*protect/i, /tips/i, /seguridad/i, /security/i, /proteger\s*(mi\s+)?cuenta/i, /protect\s*my\s*account/i],
       handler: handleSecurityTips,
     },
     {
       id: 'otp_info',
-      patterns: [/otp/i, /autenticaci[oó]n\s*(adicional|doble|dos\s*factores)/i, /two\s*-?\s*factor/i, /2fa/i, /c[oó]digo\s*(de\s+)?verificaci[oó]n/i, /verification\s*code/i, /verificaci[oó]n\s*extra/i, /extra\s*verification/i],
+      patterns: [/^\/otp$/i, /otp/i, /autenticaci[oó]n\s*(adicional|doble|dos\s*factores)/i, /two\s*-?\s*factor/i, /2fa/i, /c[oó]digo\s*(de\s+)?verificaci[oó]n/i, /verification\s*code/i, /verificaci[oó]n\s*extra/i, /extra\s*verification/i],
       handler: handleOTPInfo,
     },
     {
       id: 'device_info',
-      patterns: [/dispositivo/i, /device/i, /equipo\s*(registrado|desconocido|nuevo)/i, /trusted\s*device/i, /desde\s*(d[oó]nde|qu[eé]\s*equipo)/i],
+      patterns: [/^\/dispositivo$/i, /dispositivo/i, /device/i, /equipo\s*(registrado|desconocido|nuevo)/i, /trusted\s*device/i, /desde\s*(d[oó]nde|qu[eé]\s*equipo)/i],
       handler: handleDeviceInfo,
     },
     {
       id: 'block_info',
-      patterns: [/bloque(o|ar|ada)/i, /lock/i, /cuenta\s*bloqueada/i, /locked\s*account/i, /desbloquear/i, /unlock/i, /me\s*bloquearon/i],
+      patterns: [/^\/bloqueo$/i, /bloque(o|ar|ada)/i, /lock/i, /cuenta\s*bloqueada/i, /locked\s*account/i, /desbloquear/i, /unlock/i, /me\s*bloquearon/i],
       handler: handleBlockInfo,
     },
     {
       id: 'fraud_info',
-      patterns: [/fraude/i, /fraud/i, /transacci[oó]n\s*(sospechosa|fraudulenta)/i, /suspicious\s*transaction/i, /antifraude/i, /anti-fraud/i, /detecci[oó]n/i, /detection/i],
+      patterns: [/^\/fraude$/i, /fraude/i, /fraud/i, /transacci[oó]n\s*(sospechosa|fraudulenta)/i, /suspicious\s*transaction/i, /antifraude/i, /anti-fraud/i, /detecci[oó]n/i, /detection/i],
       handler: handleFraudInfo,
     },
     {
       id: 'system_status',
-      patterns: [/estado\s*(del\s+)?sistema/i, /system\s*status/i, /motor\s*(de\s+)?inferencia/i, /inference\s*engine/i, /sistema\s*experto/i, /expert\s*system/i, /c[oó]mo\s*(funciona|trabaja)\s*(el\s+)?sistema/i, /how\s*does\s*the\s*system\s*work/i],
+      patterns: [/^\/sistema$/i, /estado\s*(del\s+)?sistema/i, /system\s*status/i, /motor\s*(de\s+)?inferencia/i, /inference\s*engine/i, /sistema\s*experto/i, /expert\s*system/i, /c[oó]mo\s*(funciona|trabaja)\s*(el\s+)?sistema/i, /how\s*does\s*the\s*system\s*work/i],
       handler: handleSystemStatus,
     },
     {
       id: 'help',
-      patterns: [/ayuda/i, /help/i, /qu[eé]\s*(puedes|sabes)\s*hacer/i, /what\s*can\s*you\s*do/i, /comandos/i, /commands/i, /funciones/i, /opciones/i, /options/i, /men[uú]/i, /menu/i],
+      patterns: [/^\/ayuda$/i, /ayuda/i, /help/i, /qu[eé]\s*(puedes|sabes)\s*hacer/i, /what\s*can\s*you\s*do/i, /comandos/i, /commands/i, /funciones/i, /opciones/i, /options/i, /men[uú]/i, /menu/i],
       handler: handleHelp,
     },
     {
@@ -480,6 +483,77 @@
     }
   }
 
+  // ─── Slash Commands ───
+  const SLASH_COMMANDS = [
+    { cmd: '/ayuda', desc: 'Muestra todo lo que puedo hacer', icon: '🤖' },
+    { cmd: '/reglas', desc: 'Lista todas las reglas de seguridad', icon: '📋' },
+    { cmd: '/riesgo', desc: 'Consulta el nivel de riesgo actual', icon: '📊' },
+    { cmd: '/consejos', desc: 'Mejores prácticas de seguridad', icon: '🛡️' },
+    { cmd: '/fraude', desc: 'Cómo funciona la detección de fraude', icon: '🕵️' },
+    { cmd: '/otp', desc: 'Información sobre código de verificación', icon: '🔐' },
+    { cmd: '/dispositivo', desc: 'Gestión de equipos de confianza', icon: '📱' },
+    { cmd: '/bloqueo', desc: 'Información sobre bloqueos de cuenta', icon: '🔒' },
+    { cmd: '/sistema', desc: 'Estado del motor de inferencia', icon: '⚙️' },
+    { cmd: '/limpiar', desc: 'Limpia el historial del chat', icon: '🧹' }
+  ];
+
+  function renderSlashMenu(query = '') {
+    if (!slashCommandMenu) return;
+    
+    filteredSlashCommands = SLASH_COMMANDS.filter(c => c.cmd.toLowerCase().includes(query.toLowerCase()));
+    
+    if (filteredSlashCommands.length === 0 || (!query.startsWith('/') && query.length > 0 && query !== '/')) {
+      slashCommandMenu.classList.add('hidden');
+      return;
+    }
+
+    slashCommandMenu.innerHTML = '';
+    
+    filteredSlashCommands.forEach((cmdObj, index) => {
+      const item = document.createElement('div');
+      item.className = `slash-item ${index === selectedSlashIndex ? 'active' : ''}`;
+      item.onclick = () => executeSlashCommand(cmdObj.cmd);
+      
+      item.innerHTML = `
+        <div class="slash-item-icon">${cmdObj.icon}</div>
+        <div class="slash-item-content">
+          <span class="slash-item-cmd">${cmdObj.cmd}</span>
+          <span class="slash-item-desc">${cmdObj.desc}</span>
+        </div>
+      `;
+      slashCommandMenu.appendChild(item);
+    });
+
+    slashCommandMenu.classList.remove('hidden');
+  }
+
+  function executeSlashCommand(cmd) {
+    if (!slashCommandMenu) return;
+    slashCommandMenu.classList.add('hidden');
+    chatInput.value = '';
+    
+    if (cmd === '/limpiar') {
+      const typingInd = typingIndicator;
+      chatMessages.innerHTML = '';
+      if (typingInd) chatMessages.appendChild(typingInd);
+      conversationHistory.length = 0;
+      return;
+    }
+
+    // Process as normal message but bypass input
+    addMessage(cmd, 'user');
+    showTypingIndicator();
+    
+    const { intent, handler } = detectIntent(cmd);
+    const response = handler(cmd);
+    const delay = Math.min(300 + response.length * 2, 1200);
+
+    setTimeout(() => {
+      hideTypingIndicator();
+      addMessage(response, 'bot');
+    }, delay);
+  }
+
   // ─── Core NLU ───
   function detectIntent(message) {
     const normalized = message.trim().toLowerCase();
@@ -617,6 +691,8 @@
     chatFab = document.getElementById('chatFab');
     chatClose = document.getElementById('chatClose');
     typingIndicator = document.getElementById('typingIndicator');
+    slashCommandMenu = document.getElementById('slashCommandMenu');
+    slashCommandBtn = document.getElementById('slashCommandBtn');
 
     if (!chatPanel || !chatMessages || !chatInput) {
       console.warn('Chatbot: elementos del DOM no encontrados.');
@@ -624,8 +700,56 @@
     }
 
     chatSendBtn?.addEventListener('click', handleUserInput);
+    
+    slashCommandBtn?.addEventListener('click', () => {
+      if (chatInput.value === '/') {
+        chatInput.value = '';
+        slashCommandMenu?.classList.add('hidden');
+        chatInput.focus();
+      } else {
+        chatInput.value = '/';
+        chatInput.focus();
+        selectedSlashIndex = 0;
+        renderSlashMenu('/');
+      }
+    });
+
+    chatInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val.startsWith('/')) {
+        selectedSlashIndex = 0;
+        renderSlashMenu(val);
+      } else {
+        slashCommandMenu?.classList.add('hidden');
+      }
+    });
 
     chatInput.addEventListener('keydown', (e) => {
+      const isMenuOpen = slashCommandMenu && !slashCommandMenu.classList.contains('hidden');
+      
+      if (isMenuOpen) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          selectedSlashIndex = (selectedSlashIndex + 1) % filteredSlashCommands.length;
+          renderSlashMenu(chatInput.value);
+          return;
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          selectedSlashIndex = (selectedSlashIndex - 1 + filteredSlashCommands.length) % filteredSlashCommands.length;
+          renderSlashMenu(chatInput.value);
+          return;
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (filteredSlashCommands[selectedSlashIndex]) {
+            executeSlashCommand(filteredSlashCommands[selectedSlashIndex].cmd);
+          }
+          return;
+        } else if (e.key === 'Escape') {
+          slashCommandMenu.classList.add('hidden');
+          return;
+        }
+      }
+
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleUserInput();

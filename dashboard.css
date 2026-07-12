@@ -1440,6 +1440,127 @@ body::before {
   stroke-linejoin: round;
 }
 
+/* Slash Commands Menu */
+.chat-input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.slash-command-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 16px;
+  right: 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(53, 215, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(53, 215, 255, 0.1);
+  backdrop-filter: blur(12px);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 1002;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translateY(10px);
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.slash-command-menu:not(.hidden) {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+.slash-command-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.slash-command-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slash-command-menu::-webkit-scrollbar-thumb {
+  background: rgba(53, 215, 255, 0.3);
+  border-radius: 4px;
+}
+
+.slash-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.slash-item:hover, .slash-item.active {
+  background: rgba(53, 215, 255, 0.1);
+}
+
+.slash-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.slash-item.active .slash-item-icon {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 10px rgba(53, 215, 255, 0.4);
+}
+
+.slash-item-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.slash-item-cmd {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.slash-item-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.chat-slash-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.chat-slash-btn:hover {
+  background: rgba(53, 215, 255, 0.15);
+  color: var(--accent);
+  border-color: rgba(53, 215, 255, 0.3);
+}
+
 /* ─── Animations ─── */
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(53, 215, 255, 0.6); }
