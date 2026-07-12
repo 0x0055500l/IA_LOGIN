@@ -2606,7 +2606,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (botonCapturar) {
         botonCapturar.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Iniciando escaneo biométrico...');
+            console.log('Iniciando escaneo biométrico con congelamiento de imagen...');
 
             if (!videoElemento) {
                 alert('Por favor, active la cámara primero presionando "Validar acceso".');
@@ -2616,41 +2616,60 @@ document.addEventListener('DOMContentLoaded', () => {
             const listaAuditoria = document.getElementById('bankingAuditList');
 
             if (listaAuditoria) {
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = videoElemento.videoWidth || 640;
-                    canvas.height = videoElemento.videoHeight || 480;
-                    canvas.getContext('2d').drawImage(videoElemento, 0, 0);
-                    console.log('📸 Fotograma capturado en memoria.');
-                } catch (canvasErr) {
-                    console.error('Error en canvas:', canvasErr);
+                // 1. CONGELAR EL VIDEO (Se queda la foto fija)
+                videoElemento.pause();
+                console.log('📸 Video pausado para simular la captura de la fotografía.');
+
+                // 2. CREAR EL CONTORNO DEL ROSTRO (Recuadro verde de escaneo)
+                const contornoViejo = document.getElementById('face-bounding-box');
+                if (contornoViejo) contornoViejo.remove();
+
+                const contenedorVideo = videoElemento.parentElement;
+                if (contenedorVideo) {
+                    contenedorVideo.style.position = 'relative';
+
+                    const faceBox = document.createElement('div');
+                    faceBox.id = 'face-bounding-box';
+                    faceBox.style.position = 'absolute';
+                    faceBox.style.border = '3px solid #00ff88';
+                    faceBox.style.borderRadius = '8px';
+                    faceBox.style.top = '30%';
+                    faceBox.style.left = '35%';
+                    faceBox.style.width = '30%';
+                    faceBox.style.height = '45%';
+                    faceBox.style.boxShadow = '0 0 15px #00ff88';
+                    faceBox.style.pointerEvents = 'none';
+                    faceBox.style.transition = 'all 0.3s ease';
+                    contenedorVideo.appendChild(faceBox);
+
+                    const primerItem = listaAuditoria.querySelector('.audit-item') || listaAuditoria.children[0];
+
+                    if (primerItem) {
+                        primerItem.textContent = '🤖 [API BIOMÉTRICA]: Fotografía capturada. Analizando rostro...';
+
+                        setTimeout(() => {
+                            primerItem.textContent = '🔍 [API BIOMÉTRICA]: Rostro detectado en cuadrante. Verificando patrones...';
+                            faceBox.style.borderColor = '#00bcff';
+                            faceBox.style.boxShadow = '0 0 15px #00bcff';
+                        }, 1200);
+
+                        setTimeout(() => {
+                            primerItem.textContent = '✅ [AUDITORÍA]: Rostro validado con éxito. Acceso AUTORIZADO.';
+                            faceBox.style.borderColor = '#00ff88';
+                            faceBox.style.boxShadow = '0 0 25px #00ff88';
+
+                            const estadoVisual = document.getElementById('statusFaceVal') || document.querySelector('.status-value');
+                            if (estadoVisual) {
+                                estadoVisual.textContent = 'Aprobado';
+                                estadoVisual.className = 'status-value val-approved';
+                            }
+
+                            if (typeof saveTransaction === 'function') {
+                                saveTransaction('Validación Biométrica', null, 'Aprobado');
+                            }
+                        }, 2800);
+                    }
                 }
-
-                const primerItem = listaAuditoria.querySelector('.audit-item') || listaAuditoria.children[0];
-
-                if (primerItem) {
-                    primerItem.textContent = '🤖 [API BIOMÉTRICA]: Escaneando flujo buscando rostro...';
-
-                    setTimeout(() => {
-                        primerItem.textContent = '🔍 [API BIOMÉTRICA]: Rostro detectado. Enmarcando patrones...';
-                    }, 1200);
-
-                    setTimeout(() => {
-                        primerItem.textContent = '✅ [AUDITORÍA]: Rostro validado con éxito. Acceso AUTORIZADO.';
-
-                        const estadoVisual = document.getElementById('statusFaceVal') || document.querySelector('.status-value');
-                        if (estadoVisual) {
-                            estadoVisual.textContent = 'Aprobado';
-                            estadoVisual.className = 'status-value val-approved';
-                        }
-
-                        if (typeof saveTransaction === 'function') {
-                            saveTransaction('Validación Biométrica', null, 'Aprobado');
-                        }
-                    }, 2800);
-                }
-            } else {
-                console.error('No se encontró la lista #bankingAuditList');
             }
         });
     }
