@@ -2151,6 +2151,7 @@ function setupInteractiveBanking(user) {
     renderTransactionsTable();
     renderAnalysisDashboard();
   }
+  window.bankingSaveTransaction = saveTransaction;
 
   function renderTransactionsTable() {
     if (!bankingTransactionsList) return;
@@ -2780,8 +2781,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                 estadoVisual.textContent = 'Aprobado';
                                 estadoVisual.className = 'status-value val-approved';
                             }
+                            
+                            try {
+                                const list = typeof getCards === 'function' ? getCards() : [];
+                                if (list && list.length > 0) {
+                                    list[0].status = 'Completada';
+                                    if (typeof saveCards === 'function') {
+                                        saveCards(list);
+                                        window.dispatchEvent(new Event('card_state_changed'));
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error actualizando estado de tarjeta a Completada', e);
+                            }
 
-                            if (typeof saveTransaction === 'function') {
+                            if (typeof window.bankingSaveTransaction === 'function') {
+                                window.bankingSaveTransaction('Validación Biométrica', null, 'Aprobado');
+                            } else if (typeof saveTransaction === 'function') {
                                 saveTransaction('Validación Biométrica', null, 'Aprobado');
                             }
                         }, 2000);
