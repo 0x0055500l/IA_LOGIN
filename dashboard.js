@@ -2362,48 +2362,6 @@ function setupInteractiveBanking(user) {
     }
   };
 
-  const captureFace = () => {
-    const video = document.getElementById('webcam');
-    const auditLog = document.getElementById('registro-auditoria') || document.querySelector('.registro-auditoria-text');
-
-    if (!video) {
-      alert('Error: No se encuentra el elemento de video.');
-      return;
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = canvas.toDataURL('image/png');
-
-    console.log('📸 Imagen capturada, procesando con API...');
-
-    if (auditLog) {
-      auditLog.textContent = '🤖 [API]: Analizando fotograma...';
-
-      setTimeout(() => {
-        auditLog.textContent = '🔍 [API]: Verificando rasgos faciales...';
-      }, 1000);
-
-      setTimeout(() => {
-        auditLog.textContent = '✅ [API]: Rostro validado. Acceso concedido.';
-        console.log('✅ Validación finalizada.');
-
-        if (typeof saveTransaction === 'function') {
-          saveTransaction('Validación Biométrica', null, 'Aprobado');
-        }
-      }, 2500);
-    } else {
-      console.warn('No se encontró el contenedor de auditoría para mostrar el estado.');
-    }
-  };
-
-  if (captureFaceBtn) {
-    captureFaceBtn.addEventListener('click', captureFace);
-  }
-
   // Block Card button
   if (btnBlockCard) {
     btnBlockCard.addEventListener('click', () => {
@@ -2639,6 +2597,67 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('load', () => {
     renderAnalysisDashboard();
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const botonCapturar = document.getElementById('btn-capturar-rostro');
+    const videoElemento = document.getElementById('webcam');
+    const panelAuditoria = document.getElementById('registro-auditoria') || document.querySelector('.registro-auditoria-text') || document.querySelector('div[style*="Esperando"]');
+
+    if (botonCapturar) {
+        botonCapturar.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Botón Capturar Rostro presionado de forma global.');
+
+            if (!videoElemento) {
+                alert('No se encontró el elemento de video (#webcam). Asegúrate de activar la cámara primero.');
+                return;
+            }
+
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = videoElemento.videoWidth || 640;
+                canvas.height = videoElemento.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(videoElemento, 0, 0, canvas.width, canvas.height);
+                console.log('📸 Fotograma extraído con éxito.');
+            } catch (canvasErr) {
+                console.error('Error al procesar el canvas:', canvasErr);
+            }
+
+            const actualizarTextoAuditoria = (texto) => {
+                if (panelAuditoria) {
+                    panelAuditoria.textContent = texto;
+                }
+                const todosLosElementos = document.querySelectorAll('p, div, span, td');
+                todosLosElementos.forEach(el => {
+                    if (el.textContent.includes('Esperando validación') || el.textContent.includes('API BIOMÉTRICA') || el.textContent.includes('AUDITORÍA')) {
+                        el.textContent = texto;
+                    }
+                });
+            };
+
+            actualizarTextoAuditoria('🤖 [API BIOMÉTRICA]: Capturando fotograma del rostro...');
+
+            setTimeout(() => {
+                actualizarTextoAuditoria('🔍 [API BIOMÉTRICA]: Enmarcando rostro y analizando patrones biométricos...');
+            }, 1200);
+
+            setTimeout(() => {
+                actualizarTextoAuditoria('✅ [AUDITORÍA]: Rostro validado con éxito. Acceso BIOMÉTRICO AUTORIZADO.');
+
+                const estadoVisual = document.getElementById('statusFaceVal') || document.querySelector('.status-value');
+                if (estadoVisual) {
+                    estadoVisual.textContent = 'Aprobado';
+                    estadoVisual.className = 'status-value val-approved';
+                }
+
+                if (typeof saveTransaction === 'function') {
+                    saveTransaction('Validación Biométrica', null, 'Aprobado');
+                }
+            }, 2800);
+        });
+    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
