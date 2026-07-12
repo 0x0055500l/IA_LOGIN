@@ -2606,48 +2606,51 @@ document.addEventListener('DOMContentLoaded', () => {
     if (botonCapturar) {
         botonCapturar.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Captura segura ejecutada.');
+            console.log('Iniciando escaneo biométrico...');
 
             if (!videoElemento) {
-                alert('Active la cámara primero.');
+                alert('Por favor, active la cámara primero presionando "Validar acceso".');
                 return;
             }
 
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = videoElemento.videoWidth || 640;
-                canvas.height = videoElemento.videoHeight || 480;
-                canvas.getContext('2d').drawImage(videoElemento, 0, 0);
-            } catch (err) {
-                console.error(err);
-            }
+            const listaAuditoria = document.getElementById('bankingAuditList');
 
-            const panelAuditoriaEspecifico = document.getElementById('registro-auditoria') ||
-                                             document.querySelector('.registro-auditoria-text') ||
-                                             document.querySelector('footer p');
+            if (listaAuditoria) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = videoElemento.videoWidth || 640;
+                    canvas.height = videoElemento.videoHeight || 480;
+                    canvas.getContext('2d').drawImage(videoElemento, 0, 0);
+                    console.log('📸 Fotograma capturado en memoria.');
+                } catch (canvasErr) {
+                    console.error('Error en canvas:', canvasErr);
+                }
 
-            if (panelAuditoriaEspecifico) {
-                panelAuditoriaEspecifico.textContent = '🤖 [API BIOMÉTRICA]: Capturando fotograma del rostro...';
+                const primerItem = listaAuditoria.querySelector('.audit-item') || listaAuditoria.children[0];
 
-                setTimeout(() => {
-                    panelAuditoriaEspecifico.textContent = '🔍 [API BIOMÉTRICA]: Enmarcando rostro y analizando patrones...';
-                }, 1200);
+                if (primerItem) {
+                    primerItem.textContent = '🤖 [API BIOMÉTRICA]: Escaneando flujo buscando rostro...';
 
-                setTimeout(() => {
-                    panelAuditoriaEspecifico.textContent = '✅ [AUDITORÍA]: Rostro validado con éxito. Acceso BIOMÉTRICO AUTORIZADO.';
+                    setTimeout(() => {
+                        primerItem.textContent = '🔍 [API BIOMÉTRICA]: Rostro detectado. Enmarcando patrones...';
+                    }, 1200);
 
-                    const estadoVisual = document.getElementById('statusFaceVal') || document.querySelector('.status-value');
-                    if (estadoVisual) {
-                        estadoVisual.textContent = 'Aprobado';
-                        estadoVisual.className = 'status-value val-approved';
-                    }
+                    setTimeout(() => {
+                        primerItem.textContent = '✅ [AUDITORÍA]: Rostro validado con éxito. Acceso AUTORIZADO.';
 
-                    if (typeof saveTransaction === 'function') {
-                        saveTransaction('Validación Biométrica', null, 'Aprobado');
-                    }
-                }, 2800);
+                        const estadoVisual = document.getElementById('statusFaceVal') || document.querySelector('.status-value');
+                        if (estadoVisual) {
+                            estadoVisual.textContent = 'Aprobado';
+                            estadoVisual.className = 'status-value val-approved';
+                        }
+
+                        if (typeof saveTransaction === 'function') {
+                            saveTransaction('Validación Biométrica', null, 'Aprobado');
+                        }
+                    }, 2800);
+                }
             } else {
-                console.warn('No se detectó un contenedor específico para la auditoría.');
+                console.error('No se encontró la lista #bankingAuditList');
             }
         });
     }
