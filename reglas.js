@@ -40,6 +40,19 @@ const BASE_CONOCIMIENTO = [
   },
   {
     id: 'R4',
+    nombre: 'Validación Biométrica Fallida',
+    nombreEn: 'Biometric Validation Failed',
+    condicion: 'No se detecta un rostro válido o la entropía cromática indica una superficie vacía',
+    condicionEn: 'A valid face is not detected or chromatic entropy indicates an empty surface',
+    accion: 'Rechazar el acceso al panel y congelar temporalmente la autenticación de la tarjeta',
+    accionEn: 'Reject panel access and temporarily freeze card authentication',
+    tipo: 'seguridad',
+    prioridad: 1,
+    explicacion: 'Si el fotograma capturado no contiene rasgos faciales o variaciones humanas complejas, el sistema asume un intento de evasión o error de cámara.',
+    explicacionEn: 'If the captured frame does not contain facial features or complex human variations, the system assumes an evasion attempt or camera error.'
+  },
+  {
+    id: 'R5',
     nombre: 'Bloqueo total',
     nombreEn: 'Total lockout',
     condicion: 'Existen cinco intentos fallidos consecutivos',
@@ -52,7 +65,7 @@ const BASE_CONOCIMIENTO = [
     explicacionEn: 'Five consecutive failed attempts indicate high risk and require total lockout.'
   },
   {
-    id: 'R5',
+    id: 'R6',
     nombre: 'Dispositivo reconocido',
     nombreEn: 'Recognized device',
     condicion: 'El usuario inicia sesión desde un dispositivo previamente registrado',
@@ -65,7 +78,7 @@ const BASE_CONOCIMIENTO = [
     explicacionEn: 'A known device reduces the probability of fraudulent activity.'
   },
   {
-    id: 'R6',
+    id: 'R7',
     nombre: 'Dispositivo desconocido',
     nombreEn: 'Unknown device',
     condicion: 'El usuario inicia sesión desde un dispositivo desconocido',
@@ -78,7 +91,7 @@ const BASE_CONOCIMIENTO = [
     explicacionEn: 'A new device requires extra verification to protect the account.'
   },
   {
-    id: 'R7',
+    id: 'R8',
     nombre: 'Doble factor obligatorio',
     nombreEn: 'MFA Mandatory',
     condicion: 'El usuario tiene activa la autenticación de dos factores (2FA)',
@@ -91,7 +104,7 @@ const BASE_CONOCIMIENTO = [
     explicacionEn: 'The profile settings require a second authentication factor to validate the user\'s identity.'
   },
   {
-    id: 'R8',
+    id: 'R9',
     nombre: 'Seguridad estricta activa',
     nombreEn: 'Strict Security Mode',
     condicion: 'El modo estricto está activo y existe alguna sospecha o anomalía',
