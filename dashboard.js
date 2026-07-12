@@ -388,19 +388,18 @@ function initializeDashboard(user, expiresAt) {
       navInicio.classList.remove('active');
       const navHistorial = document.getElementById('navHistorial');
       if (navHistorial) navHistorial.classList.remove('active');
+      updateTopbarTitle('Ajustes y Perfil', 'Configuración del Sistema', 'settings_eyebrow', 'settings_title');
     });
 
-    // Incomplete routes show nice warning; historial loads the historial module
-    ['btn-analisis', 'navReglas'].forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const currentLang = localStorage.getItem('userLanguage') || 'es';
-          showToast(DASHBOARD_TRANSLATIONS[currentLang].under_dev_toast, 'error');
-        });
-      }
-    });
+    // Incomplete routes show nice warning
+    const navReglas = document.getElementById('navReglas');
+    if (navReglas) {
+      navReglas.addEventListener('click', (e) => {
+        e.preventDefault();
+        const currentLang = localStorage.getItem('userLanguage') || 'es';
+        showToast(DASHBOARD_TRANSLATIONS[currentLang].under_dev_toast, 'error');
+      });
+    }
 
     // Historial route: load or call initHistorialView()
     const historialBtn = document.getElementById('navHistorial');
@@ -417,6 +416,8 @@ function initializeDashboard(user, expiresAt) {
         if (navInicio) navInicio.classList.remove('active');
         if (navConfig) navConfig.classList.remove('active');
         historialBtn.classList.add('active');
+        
+        updateTopbarTitle('Auditoría', 'Historial del Sistema', null, null);
 
         // If the module is already loaded, call it directly
         if (window.initHistorialView && typeof window.initHistorialView === 'function') {
@@ -1972,7 +1973,7 @@ function renderAnalysisCharts(transactions, bankingTransactions = []) {
     data: {
       labels: ['Normales', 'Riesgo bajo', 'Riesgo medio', 'Riesgo alto', 'Fraudes'],
       datasets: [{
-        data: [normalCount, Math.max(0, safeCount - fraudCount), suspiciousCount, Math.max(0, fraudCount), fraudCount],
+        data: [normalCount, Math.max(0, normalCount - fraudCount), suspiciousCount, Math.max(0, fraudCount), fraudCount],
         backgroundColor: ['#34d399', '#60a5fa', '#facc15', '#fb923c', '#ef4444']
       }]
     },
@@ -2550,33 +2551,69 @@ function setupInteractiveBanking(user) {
   }
 }
 
+function updateTopbarTitle(eyebrowText, titleText, eyebrowI18n, titleI18n) {
+  const eyebrowEl = document.getElementById('topbarEyebrow');
+  const titleEl = document.getElementById('topbarTitle');
+  if (eyebrowEl) {
+    eyebrowEl.textContent = eyebrowText;
+    if (eyebrowI18n) eyebrowEl.setAttribute('data-i18n', eyebrowI18n);
+    else eyebrowEl.removeAttribute('data-i18n');
+  }
+  if (titleEl) {
+    titleEl.textContent = titleText;
+    if (titleI18n) titleEl.setAttribute('data-i18n', titleI18n);
+    else titleEl.removeAttribute('data-i18n');
+  }
+}
+
 function toggleAnalysisSection(show) {
-  const dashboardShell = document.getElementById('dashboardShell');
   const analysisSection = document.getElementById('seccion-analisis');
-  const sidebar = dashboardShell ? dashboardShell.querySelector('aside') : null;
+  const dashboardView = document.getElementById('dashboardView');
+  const settingsView = document.getElementById('settingsView');
+  const historialView = document.getElementById('historialView');
 
-  if (!dashboardShell || !analysisSection) return;
-
-  const viewNodes = Array.from(dashboardShell.children).filter((node) => node !== sidebar);
+  if (!analysisSection || !dashboardView) return;
 
   if (show) {
-    viewNodes.forEach((node) => {
-      if (node !== analysisSection) node.classList.add('hidden');
+    if(settingsView) settingsView.classList.add('hidden');
+    if(historialView) historialView.classList.add('hidden');
+    
+    dashboardView.classList.remove('hidden');
+    Array.from(dashboardView.children).forEach(child => {
+      if (child !== analysisSection) child.classList.add('hidden');
     });
+    
     analysisSection.classList.remove('hidden');
+    updateTopbarTitle('Centro inteligente de monitoreo', 'Panel de análisis antifraude', null, null);
     window.requestAnimationFrame(() => renderAnalysisDashboard());
   } else {
-    viewNodes.forEach((node) => {
-      if (node !== analysisSection) node.classList.remove('hidden');
-    });
+    if(settingsView) settingsView.classList.add('hidden');
+    if(historialView) historialView.classList.add('hidden');
+    
+    dashboardView.classList.remove('hidden');
     analysisSection.classList.add('hidden');
+    Array.from(dashboardView.children).forEach(child => {
+      if (child !== analysisSection) child.classList.remove('hidden');
+    });
+    
+    updateTopbarTitle('Panel de control', 'Detección inteligente de fraude', 'dashboard_eyebrow', 'dashboard_title');
+    if (typeof applyDashboardLanguage === 'function') {
+      applyDashboardLanguage(localStorage.getItem('userLanguage') || 'es');
+    }
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const analysisBtn = document.getElementById('btn-analisis');
+  const navAnalisisBtn = document.getElementById('navAnalisis');
   const navReglasBtn = document.getElementById('navReglas');
   const navInicioBtn = document.getElementById('navInicio');
+
+  const navHistorial = document.getElementById('navHistorial');
+  const navConfig = document.getElementById('navConfig');
+  const dashboardView = document.getElementById('dashboardView');
+  const settingsView = document.getElementById('settingsView');
+  const historialView = document.getElementById('historialView');
 
   if (analysisBtn) {
     analysisBtn.addEventListener('click', (e) => {
@@ -2585,14 +2622,53 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  [navReglasBtn, navInicioBtn].forEach((btn) => {
-    if (btn) {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        toggleAnalysisSection(false);
-      });
-    }
-  });
+  if (navAnalisisBtn) {
+    navAnalisisBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleAnalysisSection(true);
+      
+      if (navInicioBtn) navInicioBtn.classList.remove('active');
+      if (navHistorial) navHistorial.classList.remove('active');
+      if (navConfig) navConfig.classList.remove('active');
+      navAnalisisBtn.classList.add('active');
+    });
+  }
+
+  if (navReglasBtn) {
+    navReglasBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const currentLang = localStorage.getItem('userLanguage') || 'es';
+      showToast(DASHBOARD_TRANSLATIONS[currentLang].under_dev_toast, 'error');
+      
+      // Ensure we don't leave the screen empty if clicked from another view
+      if(settingsView) settingsView.classList.add('hidden');
+      if(historialView) historialView.classList.add('hidden');
+      if(dashboardView) dashboardView.classList.remove('hidden');
+      
+      if (navInicioBtn) navInicioBtn.classList.remove('active');
+      if (navHistorial) navHistorial.classList.remove('active');
+      if (navConfig) navConfig.classList.remove('active');
+      if (navAnalisisBtn) navAnalisisBtn.classList.remove('active');
+      navReglasBtn.classList.add('active');
+    });
+  }
+
+  if (navInicioBtn) {
+    navInicioBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleAnalysisSection(false);
+      
+      const navHistorial = document.getElementById('navHistorial');
+      const navConfig = document.getElementById('navConfig');
+      if (navHistorial) navHistorial.classList.remove('active');
+      if (navConfig) navConfig.classList.remove('active');
+      navInicioBtn.classList.add('active');
+      updateTopbarTitle('Panel de control', 'Detección inteligente de fraude', 'dashboard_eyebrow', 'dashboard_title');
+      if (typeof applyDashboardLanguage === 'function') {
+        applyDashboardLanguage(localStorage.getItem('userLanguage') || 'es');
+      }
+    });
+  }
 
   window.addEventListener('load', () => {
     renderAnalysisDashboard();
@@ -2745,5 +2821,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     } else {
         console.error('No se encontraron los elementos HTML btn-validar-acceso o webcam en el DOM.');
+    }
+});
+
+// ─── Mobile Sidebar Navigation ───
+document.addEventListener('DOMContentLoaded', () => {
+    const openSidebarBtn = document.getElementById('openSidebarBtn');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    
+    function openMenu() {
+        if(sidebar) sidebar.classList.add('open');
+        if(sidebarOverlay) sidebarOverlay.classList.add('active');
+    }
+    
+    function closeMenu() {
+        if(sidebar) sidebar.classList.remove('open');
+        if(sidebarOverlay) sidebarOverlay.classList.remove('active');
+    }
+
+    if (openSidebarBtn) openSidebarBtn.addEventListener('click', openMenu);
+    if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeMenu);
+    if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeMenu);
+    
+    // Close sidebar when clicking a link inside it on mobile
+    if (sidebar) {
+        const links = sidebar.querySelectorAll('a');
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1080) {
+                    closeMenu();
+                }
+            });
+        });
     }
 });

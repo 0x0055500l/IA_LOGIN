@@ -18,7 +18,11 @@
   </div>
 
   <div class="dashboard-shell" id="dashboardShell">
-    <aside class="sidebar">
+    <!-- Sidebar Overlay para móviles -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+      <button type="button" id="closeSidebarBtn" class="close-sidebar-btn" aria-label="Cerrar menú">✕</button>
       <div class="brand">
         <div class="brand-mark">
           <svg viewBox="0 0 64 64" aria-hidden="true">
@@ -73,9 +77,14 @@
 
     <main class="main-content">
       <header class="topbar">
-        <div>
-          <p class="eyebrow" data-i18n="dashboard_eyebrow">Panel de control</p>
-          <h2 data-i18n="dashboard_title">Detección inteligente de fraude</h2>
+        <div class="topbar-left">
+          <button type="button" id="openSidebarBtn" class="hamburger-btn" aria-label="Abrir menú">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div>
+            <p id="topbarEyebrow" class="eyebrow" data-i18n="dashboard_eyebrow">Panel de control</p>
+            <h2 id="topbarTitle" data-i18n="dashboard_title">Detección inteligente de fraude</h2>
+          </div>
         </div>
         <div class="topbar-actions">
           <div class="status-chip" id="onlineChip" data-i18n="dashboard_online">● En línea</div>
@@ -787,3 +796,5 @@
   <script src="chatbot.js"></script>
 </body>
 </html>
+
+<script>window.addEventListener('error', function(e) { alert('JS Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno); });</script>
