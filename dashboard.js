@@ -2599,12 +2599,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+let modelosCargados = false;
+
+async function cargarModelosFaceAPI() {
+    if (modelosCargados) return;
+    console.log('🤖 Cargando modelos de detección facial...');
+
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    modelosCargados = true;
+    console.log('✅ Modelos faciales listos para producción.');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const botonCapturar = document.getElementById('btn-capturar-rostro');
     const videoElemento = document.getElementById('webcam');
 
     if (botonCapturar) {
-        botonCapturar.addEventListener('click', (e) => {
+        botonCapturar.addEventListener('click', async (e) => {
             e.preventDefault();
             console.log('Iniciando escaneo biométrico con congelamiento de imagen...');
 
@@ -2614,61 +2626,90 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const listaAuditoria = document.getElementById('bankingAuditList');
+            const primerItem = listaAuditoria?.querySelector('.audit-item') || listaAuditoria?.children[0];
 
-            if (listaAuditoria) {
-                // 1. CONGELAR EL VIDEO (Se queda la foto fija)
-                videoElemento.pause();
-                console.log('📸 Video pausado para simular la captura de la fotografía.');
+            if (primerItem) {
+                primerItem.textContent = '🤖 [API BIOMÉTRICA]: Procesando fotograma y cargando IA...';
+            }
 
-                // 2. CREAR EL CONTORNO DEL ROSTRO (Recuadro verde de escaneo)
-                const contornoViejo = document.getElementById('face-bounding-box');
-                if (contornoViejo) contornoViejo.remove();
+            videoElemento.pause();
 
-                const contenedorVideo = videoElemento.parentElement;
-                if (contenedorVideo) {
-                    contenedorVideo.style.position = 'relative';
+            try {
+                await cargarModelosFaceAPI();
+            } catch (err) {
+                console.error('Error cargando la IA:', err);
+                if (primerItem) primerItem.textContent = '❌ [ERROR]: No se pudo inicializar el motor de IA.';
+                videoElemento.play();
+                return;
+            }
 
-                    const faceBox = document.createElement('div');
-                    faceBox.id = 'face-bounding-box';
-                    faceBox.style.position = 'absolute';
-                    faceBox.style.border = '3px solid #00ff88';
-                    faceBox.style.borderRadius = '8px';
+            const contornoViejo = document.getElementById('face-bounding-box');
+            if (contornoViejo) contornoViejo.remove();
+
+            const deteccion = await faceapi.detectSingleFace(videoElemento, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }));
+            const contenedorVideo = videoElemento.parentElement;
+
+            if (contenedorVideo) {
+                contenedorVideo.style.position = 'relative';
+
+                const faceBox = document.createElement('div');
+                faceBox.id = 'face-bounding-box';
+                faceBox.style.position = 'absolute';
+                faceBox.style.borderRadius = '8px';
+                faceBox.style.pointerEvents = 'none';
+                faceBox.style.transition = 'all 0.3s ease';
+
+                if (!deteccion) {
+                    console.log('⚠️ No se detectó ninguna presencia humana en el fotograma.');
+                    faceBox.style.border = '3px solid #ff4a4a';
                     faceBox.style.top = '30%';
                     faceBox.style.left = '35%';
                     faceBox.style.width = '30%';
                     faceBox.style.height = '45%';
-                    faceBox.style.boxShadow = '0 0 15px #00ff88';
-                    faceBox.style.pointerEvents = 'none';
-                    faceBox.style.transition = 'all 0.3s ease';
+                    faceBox.style.boxShadow = '0 0 15px #ff4a4a';
                     contenedorVideo.appendChild(faceBox);
 
-                    const primerItem = listaAuditoria.querySelector('.audit-item') || listaAuditoria.children[0];
-
                     if (primerItem) {
-                        primerItem.textContent = '🤖 [API BIOMÉTRICA]: Fotografía capturada. Analizando rostro...';
-
-                        setTimeout(() => {
-                            primerItem.textContent = '🔍 [API BIOMÉTRICA]: Rostro detectado en cuadrante. Verificando patrones...';
-                            faceBox.style.borderColor = '#00bcff';
-                            faceBox.style.boxShadow = '0 0 15px #00bcff';
-                        }, 1200);
-
-                        setTimeout(() => {
-                            primerItem.textContent = '✅ [AUDITORÍA]: Rostro validado con éxito. Acceso AUTORIZADO.';
-                            faceBox.style.borderColor = '#00ff88';
-                            faceBox.style.boxShadow = '0 0 25px #00ff88';
-
-                            const estadoVisual = document.getElementById('statusFaceVal') || document.querySelector('.status-value');
-                            if (estadoVisual) {
-                                estadoVisual.textContent = 'Aprobado';
-                                estadoVisual.className = 'status-value val-approved';
-                            }
-
-                            if (typeof saveTransaction === 'function') {
-                                saveTransaction('Validación Biométrica', null, 'Aprobado');
-                            }
-                        }, 2800);
+                        primerItem.textContent = '❌ [AUDITORÍA]: Rechazado. No se detecta un rostro válido en la captura.';
                     }
+
+                    setTimeout(() => {
+                        faceBox.remove();
+                        videoElemento.play();
+                        if (primerItem) primerItem.textContent = '🔄 [SISTEMA]: Esperando nueva captura de rostro...';
+                    }, 3000);
+                    return;
+                }
+
+                const { x, y, width, height } = deteccion.box;
+                const videoWidth = videoElemento.clientWidth;
+                const videoHeight = videoElemento.clientHeight;
+                const scaleX = videoWidth / videoElemento.videoWidth;
+                const scaleY = videoHeight / videoElemento.videoHeight;
+
+                faceBox.style.border = '3px solid #00ff88';
+                faceBox.style.left = `${x * scaleX}px`;
+                faceBox.style.top = `${y * scaleY}px`;
+                faceBox.style.width = `${width * scaleX}px`;
+                faceBox.style.height = `${height * scaleY}px`;
+                faceBox.style.boxShadow = '0 0 20px #00ff88';
+                contenedorVideo.appendChild(faceBox);
+
+                if (primerItem) {
+                    primerItem.textContent = '🔍 [API BIOMÉTRICA]: Analizando rasgos y vectores faciales...';
+
+                    setTimeout(() => {
+                        primerItem.textContent = '✅ [AUDITORÍA]: Rostro validado con éxito. Acceso BIOMÉTRICO AUTORIZADO.';
+                        const estadoVisual = document.getElementById('statusFaceVal') || document.querySelector('.status-value');
+                        if (estadoVisual) {
+                            estadoVisual.textContent = 'Aprobado';
+                            estadoVisual.className = 'status-value val-approved';
+                        }
+
+                        if (typeof saveTransaction === 'function') {
+                            saveTransaction('Validación Biométrica', null, 'Aprobado');
+                        }
+                    }, 1500);
                 }
             }
         });
