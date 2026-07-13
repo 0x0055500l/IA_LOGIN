@@ -10,7 +10,7 @@ Un sistema de inicio de sesión moderno con **Sistema Experto**, **Chatbot IA**,
 Consulta el [Informe del Proyecto](INFORME-Proyecto_Sistema_Experto.pdf)
 
 ## 📋 DISPOSITIVA
-Consulta el [Informe del Proyecto](Presentacion-Inteligencia Artificial - BankSecure.pdf")
+Consulta el [Informe del Proyecto](Presentacion-InteligenciaArtificial-BankSecure.pdf")
 
 ## 📋 Requisitos Previos
 
